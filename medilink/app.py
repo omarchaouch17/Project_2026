@@ -9,8 +9,10 @@ from fhir_db import (
     create_all_tables, add_patient, add_condition, delete_patient,
     save_risk, get_latest_risk, get_all_risks,
     count_visit, get_statistics, get_all_entries,
-    get_patients_with_conditions, get_all_patients, get_conditions
+    get_patients_with_conditions, get_all_patients, get_conditions,
+    save_screening, get_latest_screening
 )
+import screening as screening_logic
 from translations import (
     texts, translate_diagnosis, category_name, CATEGORIES, DIAGNOSES, OTHER, excludes_framingham
 )
@@ -144,8 +146,8 @@ def create_patient():
     add_condition(patient_id, values["diagnosis"], values["category"])
 
     remember_patient(patient_id)
-    # Straight on to the score calculation, the new patient is already selected
-    return redirect(url_for("risk_form", patient=patient_id, new=1, lang=current_language()))
+    # Step 1 comes first: the questionnaire (the score only follows if no high-risk condition is found)
+    return redirect(url_for("screening_form", patient=patient_id, new=1, lang=current_language()))
 
 
 @app.route("/delete/<int:patient_id>", methods=["POST"])
@@ -187,7 +189,11 @@ def _risk_page(values, errors, status=200, just_saved=False):
 
 @app.route("/risk")
 def risk_form():
-    # /risk?patient=3 pre-selects the patient
+    # /risk?patient=3 pre-selects the patient (but the questionnaire must have been answered first)
+    patient = request.args.get("patient", "")
+    if patient.isdigit() and int(patient) in dict(get_visible_patients()) \
+            and get_latest_screening(int(patient)) is None:
+        return redirect(url_for("screening_form", patient=patient, lang=current_language()))
     return _risk_page({"patient_id": request.args.get("patient", "")}, {},
                       just_saved=bool(request.args.get("new")))
 
@@ -199,8 +205,16 @@ def calculate_risk():
     if errors:
         return _risk_page(request.form, errors, 400)
 
-    # Framingham is for people WITHOUT known heart disease/diabetes: otherwise do not calculate or save anything
     language = current_language()
+    # Step 1 must be done and must not have found a high-risk condition
+    screening = get_latest_screening(values["patient_id"])
+    if screening is None:
+        return redirect(url_for("screening_form", patient=values["patient_id"], lang=language))
+    level, reasons, modifiers = screening
+    if level != screening_logic.PROCEED:
+        return _screening_result_page(values["patient_id"], values["name"], level, reasons, modifiers)
+
+    # Safety net: stored diagnoses that also mean "no Framingham" (known heart disease, diabetes)
     for diagnosis in get_conditions(values["patient_id"]):
         if excludes_framingham(diagnosis):
             shown = translate_diagnosis(diagnosis, language)
@@ -220,6 +234,10 @@ def calculate_risk():
               cigarettes_per_day=values["cigarettes"])
 
     category = risk_category(risk_percent)
+    # Step 3: below 10 % but additional risk factors -> medium instead of low
+    upgraded = category == "low" and bool(modifiers)
+    if upgraded:
+        category = "medium"
     # Remember it for the assistant (without the name)
     session["result"] = {"sex": values["sex"], "age": values["age"], "cholesterol": values["cholesterol"],
                          "hdl": values["hdl"], "blood_pressure": values["blood_pressure"],
@@ -230,7 +248,65 @@ def calculate_risk():
                            message=f"{values['name']}: " + t["result"].format(p=risk_percent),
                            smoking_line=smoking_line(values, t),
                            category=category, tips=get_tips(values, category),
+                           modifier_keys=modifiers if upgraded else [],
                            show_languages=False)
+
+
+def _screening_result_page(patient_id, name, level, reasons, modifiers, missing=(), egfr=None, status=200):
+    return render_template("screening_result.html", patient_id=patient_id, name=name, level=level,
+                           reasons=reasons, missing=list(missing), egfr=egfr, language_path="/screening"), status
+
+
+def _screening_page(patient_id, name, values, errors, status=200, just_saved=False):
+    return render_template("screening.html", patient_id=patient_id, name=name, values=values, errors=errors,
+                           checks=screening_logic, just_saved=just_saved, language_path="/screening",
+                           patient_arg=patient_id), status
+
+
+@app.route("/screening")
+def screening_form():
+    patient = request.args.get("patient", "")
+    names = dict(get_visible_patients())
+    if not patient.isdigit() or int(patient) not in names:
+        return redirect(url_for("home", lang=current_language()))
+    return _screening_page(int(patient), names[int(patient)], {}, {}, just_saved=bool(request.args.get("new")))
+
+
+@app.route("/screening", methods=["POST"])
+def screening_submit():
+    t = texts[current_language()]
+    names = dict(get_visible_patients())
+    patient = request.form.get("patient_id", "")
+    if not patient.isdigit() or int(patient) not in names:
+        abort(404)
+    patient_id = int(patient)
+
+    answers, raw_errors = screening_logic.clean(request.form)
+    labels = {"diabetes": t["sc_diabetes"], "creatinine": t["sc_creatinine"], "egfr": t["sc_egfr"],
+              "total_chol": t["sc_total_chol"], "ldl": t["sc_ldl"], "sbp": t["sc_sbp"], "dbp": t["sc_dbp"],
+              "age": t["age"]}
+    errors = {}
+    for field, (kind, info) in raw_errors.items():
+        label = labels.get(field, "")
+        if field == "sex":
+            errors[field] = t["err_sex"]
+        elif kind == "choose":
+            errors[field] = t["err_choose"].format(label=label)
+        elif kind == "required":
+            errors[field] = t["err_required"].format(label=label)
+        elif kind == "number":
+            errors[field] = t["err_number"].format(label=label)
+        else:
+            errors[field] = t["err_range"].format(label=label, low=info[0], high=info[1])
+    if errors:
+        return _screening_page(patient_id, names[patient_id], request.form, errors, 400)
+
+    result = screening_logic.assess(answers)
+    save_screening(patient_id, result["level"], result["reasons"], result["modifiers"])
+    if result["level"] == screening_logic.PROCEED and not result["missing"]:
+        return redirect(url_for("risk_form", patient=patient_id, lang=current_language()))
+    return _screening_result_page(patient_id, names[patient_id], result["level"], result["reasons"],
+                                  result["modifiers"], result["missing"], result["egfr"])
 
 
 @app.route("/history/<int:patient_id>")

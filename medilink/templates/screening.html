@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ t.sc_title }}</h1>
+<p><strong>{{ name }}</strong></p>
+<p class="hint">{{ t.sc_intro }}</p>
+
+{% if just_saved %}<div class="success-box" role="status">✓ {{ t.saved }}<br>{{ t.next_screening }}</div>{% endif %}
+{% if errors %}<div class="error-box" role="alert">{{ t.error_title }}</div>{% endif %}
+
+<form action="/screening" method="POST" id="screening-form" novalidate>
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <input type="hidden" name="patient_id" value="{{ patient_id }}">
+
+    <h2>{{ t.sc_h_cvd }}</h2>
+    <p class="hint">{{ t.sc_h_cvd_hint }}</p>
+    {% for key in checks.CVD_CLINICAL + checks.CVD_IMAGING %}
+    <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['c_' ~ key] }}</label>
+    {% endfor %}
+
+    <h2>{{ t.sc_h_diabetes }}</h2>
+    <div class="field">
+        <label for="diabetes">{{ t.sc_diabetes }}</label>
+        <select id="diabetes" name="diabetes" {% if errors.get('diabetes') %}class="invalid"{% endif %}>
+            <option value="" disabled {% if not values.get('diabetes') %}selected{% endif %}>{{ t.choose }}</option>
+            <option value="no" {% if values.get('diabetes') == 'no' %}selected{% endif %}>{{ t.sc_no }}</option>
+            <option value="yes" {% if values.get('diabetes') == 'yes' %}selected{% endif %}>{{ t.sc_yes }}</option>
+        </select>
+        <div class="error" role="alert">{{ errors.get('diabetes', '') }}</div>
+    </div>
+    <div id="diabetes-details">
+        {% for key in checks.DIABETES_DETAILS %}
+        <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['c_' ~ key] }}</label>
+        {% endfor %}
+    </div>
+
+    <h2>{{ t.sc_h_kidney }}</h2>
+    <p class="hint">{{ t.sc_kidney_hint }}</p>
+    <div class="field">
+        <label for="sex">{{ t.sex }}</label>
+        <select id="sex" name="sex" {% if errors.get('sex') %}class="invalid"{% endif %}>
+            <option value="" {% if not values.get('sex') %}selected{% endif %}>–</option>
+            <option value="m" {% if values.get('sex') == 'm' %}selected{% endif %}>{{ t.male }}</option>
+            <option value="f" {% if values.get('sex') == 'f' %}selected{% endif %}>{{ t.female }}</option>
+        </select>
+        <div class="error" role="alert">{{ errors.get('sex', '') }}</div>
+    </div>
+    {% set low, high = checks.AGE_RANGE_SCREENING %}
+    <div class="field">
+        <label for="age">{{ t.age }}</label>
+        <input type="number" id="age" name="age" min="{{ low }}" max="{{ high }}" step="1" inputmode="numeric" value="{{ values.get('age', '') }}" {% if errors.get('age') %}class="invalid"{% endif %}>
+        <div class="error" role="alert">{{ errors.get('age', '') }}</div>
+    </div>
+    {% for field, label_key in [('creatinine', 'sc_creatinine'), ('egfr', 'sc_egfr')] %}
+    {% set limits = checks.NUMBER_FIELDS[field] %}
+    <div class="field">
+        <label for="{{ field }}">{{ t[label_key] }} ({{ limits[2] }})</label>
+        <input type="number" id="{{ field }}" name="{{ field }}" min="{{ limits[0] }}" max="{{ limits[1] }}" step="any" inputmode="decimal" value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
+        <small class="hint">{{ t.range }}: <bdi dir="ltr">{{ limits[0] }}–{{ limits[1] }}</bdi></small>
+        <div class="error" role="alert">{{ errors.get(field, '') }}</div>
+    </div>
+    {% endfor %}
+
+    <h2>{{ t.sc_h_severe }}</h2>
+    {% for field, label_key in [('total_chol', 'sc_total_chol'), ('ldl', 'sc_ldl'), ('sbp', 'sc_sbp'), ('dbp', 'sc_dbp')] %}
+    {% set limits = checks.NUMBER_FIELDS[field] %}
+    <div class="field">
+        <label for="{{ field }}">{{ t[label_key] }} ({{ limits[2] }})</label>
+        <input type="number" id="{{ field }}" name="{{ field }}" min="{{ limits[0] }}" max="{{ limits[1] }}" step="any" inputmode="decimal" value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
+        <small class="hint">{{ t.range }}: <bdi dir="ltr">{{ limits[0] }}–{{ limits[1] }}</bdi></small>
+        <div class="error" role="alert">{{ errors.get(field, '') }}</div>
+    </div>
+    {% endfor %}
+
+    <h2>{{ t.sc_h_htn }}</h2>
+    {% for key in checks.HTN_ORGAN_DAMAGE %}
+    <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['c_' ~ key] }}</label>
+    {% endfor %}
+
+    <h2>{{ t.sc_h_modifiers }}</h2>
+    {% for key in checks.MODIFIERS %}
+    <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['m_' ~ key] }}</label>
+    {% endfor %}
+
+    <br>
+    <button type="submit">{{ t.sc_submit }}</button>
+</form>
+<p class="hint">{{ t.sc_source }}</p>
+<p class="hint">{{ t.risk_hint }}</p>
+<br>
+<a href="/?lang={{ lang }}">{{ t.back }}</a>
+
+<script>
+(function () {
+    var select = document.getElementById('diabetes'), box = document.getElementById('diabetes-details');
+    function toggle() { box.style.display = select.value === 'yes' ? '' : 'none'; }
+    select.addEventListener('change', toggle); toggle();
+})();
+</script>
+{% endblock %}

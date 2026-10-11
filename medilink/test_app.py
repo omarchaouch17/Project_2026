@@ -66,6 +66,16 @@ def fake_conditions(monkeypatch):
     monkeypatch.setattr(app_module, "get_conditions", lambda patient_id: [])
 
 
+@pytest.fixture(autouse=True)
+def fake_screening(monkeypatch):
+    """By default the questionnaire (step 1) was answered and found no high-risk condition."""
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda patient_id: ("proceed", [], []))
+    saved = []
+    monkeypatch.setattr(app_module, "save_screening",
+                        lambda pid, level, reasons, modifiers: saved.append((pid, level, reasons, modifiers)))
+    return saved
+
+
 @pytest.fixture
 def fake_risk(monkeypatch):
     """Merkt sich, zu welchen Patienten ein Score saved wird."""
@@ -111,7 +121,7 @@ def test_add_patient_shows_confirmation(client, fake_db):
     assert response.status_code == 302
     assert fake_db == ["Test Patient"]
     location = response.headers["Location"]
-    assert "/risk?" in location and "patient=99" in location and "new=1" in location and "lang=de" in location
+    assert "/screening?" in location and "patient=99" in location and "new=1" in location and "lang=de" in location
 
 
 def test_add_patient_empty_fields_rejected(client, fake_db):
@@ -504,13 +514,13 @@ def test_result_page_tips_follow_language(client, fake_risk):
     assert "نصائح عامة" in html and "112" in html
 
 
-def test_new_patient_lands_on_risk_page_with_banner_and_preselection(client, monkeypatch, fake_db):
+def test_new_patient_lands_on_questionnaire_with_banner(client, monkeypatch, fake_db):
     response = post_patient(client, lang="fr")
     assert "lang=fr" in response.headers["Location"]
     monkeypatch.setattr(app_module, "get_visible_patients", lambda: [(99, "Neu"), (1, "Demo")])
     html = client.get(response.headers["Location"]).get_data(as_text=True)
-    assert "Calculez maintenant le risque cardiaque" in html
-    assert re.search(r'<option value="99"\s+selected', html)
+    assert "remplir le questionnaire" in html and "Étape 1" in html
+    assert 'name="patient_id" value="99"' in html
 
 
 def test_risk_page_without_new_flag_has_no_banner(client):
@@ -745,7 +755,7 @@ def test_statistics_db_functions(tmp_path, monkeypatch):
     import fhir_db
     monkeypatch.chdir(tmp_path)
     for f in (fhir_db.create_patients_table, fhir_db.create_conditions_table,
-              fhir_db.create_risk_scores_table, fhir_db.create_visits_table):
+              fhir_db.create_risk_scores_table, fhir_db.create_visits_table, fhir_db.create_screenings_table):
         f()
     fhir_db.count_visit("a"); fhir_db.count_visit("a"); fhir_db.count_visit("b")
     pid = fhir_db.add_patient("X", "y")
@@ -972,6 +982,7 @@ def test_db_functions_roundtrip_with_sqlite(tmp_path, monkeypatch):
     import fhir_db
     monkeypatch.chdir(tmp_path)
     fhir_db.create_patients_table(); fhir_db.create_conditions_table(); fhir_db.create_risk_scores_table()
+    fhir_db.create_screenings_table()
     pid = fhir_db.add_patient("Zoe", "x"); fhir_db.add_patient("anna", "x")
     fhir_db.add_condition(pid, "Asthma", "Pulmonology")
     fhir_db.save_risk(pid, 55, 220.0, 50.0, 140.0, True, False, 8.3, 15)
@@ -1035,3 +1046,186 @@ def test_framingham_still_works_for_other_diagnoses(client, fake_risk, monkeypat
     monkeypatch.setattr(app_module, "get_conditions", lambda patient_id: [diagnosis])
     assert post_risk(client).status_code == 200
     assert fake_risk == [1]
+
+
+# ---------- Step 1: questionnaire (INEAS 2022 pathway) ----------
+
+import screening as sc
+
+QUESTIONNAIRE = {"patient_id": "1", "lang": "en", "diabetes": "no"}
+
+
+def post_screening(client, **overrides):
+    data = dict(QUESTIONNAIRE)
+    data.update(overrides)
+    return client.post("/screening", data=data)
+
+
+def test_egfr_formula_gives_known_values():
+    assert sc.egfr_ckd_epi_2021(1.0, "m", 50) == 91.7
+    assert sc.egfr_ckd_epi_2021(0.8, "f", 40) == 95.5
+    assert sc.egfr_ckd_epi_2021(4.0, "m", 60) < 30
+
+
+def _answers(**kw):
+    form = dict(QUESTIONNAIRE)
+    form.update(kw)
+    answers, errors = sc.clean(form)
+    assert errors == {}, errors
+    return sc.assess(answers)
+
+
+def test_nothing_found_means_proceed_and_lists_missing_labs():
+    result = _answers()
+    assert result["level"] == "proceed" and result["reasons"] == []
+    assert result["missing"] == ["lab_kidney", "lab_lipids", "lab_bp"]
+
+
+@pytest.mark.parametrize("key", list(sc.CVD_CLINICAL) + list(sc.CVD_IMAGING))
+def test_known_cardiovascular_disease_is_very_high(key):
+    result = _answers(**{key: "on"})
+    assert result["level"] == "very_high" and result["reasons"] == ["cvd_documented"]
+
+
+def test_diabetes_levels():
+    assert _answers(diabetes="yes")["level"] == "high"
+    for key in sc.DIABETES_DETAILS:
+        assert _answers(diabetes="yes", **{key: "on"})["level"] == "very_high"
+    assert _answers(diabetes="no", dm_organ_damage="on")["level"] == "proceed"    # sub-question ignored
+
+
+@pytest.mark.parametrize("egfr,level", [("25", "very_high"), ("29.9", "very_high"), ("30", "high"),
+                                        ("59", "high"), ("60", "proceed"), ("95", "proceed")])
+def test_kidney_limits_with_direct_egfr(egfr, level):
+    assert _answers(egfr=egfr)["level"] == level
+
+
+def test_kidney_from_creatinine_uses_sex_and_age():
+    assert _answers(creatinine="4.0", sex="m", age="60")["level"] == "very_high"
+    result = _answers(creatinine="1.0", sex="m", age="50")
+    assert result["level"] == "proceed" and result["egfr"] == 91.7
+    assert "lab_kidney" not in result["missing"]
+
+
+def test_creatinine_without_sex_and_age_is_rejected():
+    answers, errors = sc.clean(dict(QUESTIONNAIRE, creatinine="1.0"))
+    assert "sex" in errors and "age" in errors
+
+
+@pytest.mark.parametrize("field,value,reason", [
+    ("total_chol", "311", "chol_severe"), ("ldl", "191", "ldl_severe"),
+    ("sbp", "180", "bp_severe"), ("dbp", "110", "bp_severe"), ("htn_organ_damage", "on", "htn_organ_damage"),
+])
+def test_single_severe_risk_factor_is_high(field, value, reason):
+    result = _answers(**{field: value})
+    assert result["level"] == "high" and reason in result["reasons"]
+
+
+@pytest.mark.parametrize("field,value", [("total_chol", "310"), ("ldl", "190"), ("sbp", "179"), ("dbp", "109")])
+def test_values_at_the_limit_are_not_severe(field, value):
+    assert _answers(**{field: value})["level"] == "proceed"
+
+
+def test_very_high_beats_high():
+    assert _answers(stenosis50="on", ldl="250")["level"] == "very_high"
+
+
+def test_modifiers_are_collected_but_do_not_change_the_level():
+    result = _answers(sedentary="on", hiv="on")
+    assert result["level"] == "proceed" and result["modifiers"] == ["sedentary", "hiv"]
+
+
+@pytest.mark.parametrize("field,value", [("ldl", "5"), ("sbp", "400"), ("creatinine", "abc"), ("egfr", "-3"),
+                                         ("total_chol", "9999")])
+def test_questionnaire_rejects_invalid_numbers(client, fake_screening, field, value):
+    response = post_screening(client, **{field: value})
+    assert response.status_code == 400 and fake_screening == []
+
+
+def test_questionnaire_requires_diabetes_answer(client, fake_screening):
+    data = {"patient_id": "1", "lang": "en"}
+    assert client.post("/screening", data=data).status_code == 400 and fake_screening == []
+
+
+def test_questionnaire_unknown_patient_is_404(client):
+    assert post_screening(client, patient_id="12345").status_code == 404
+    assert client.post("/screening", data={"lang": "en"}).status_code == 404
+
+
+def test_high_risk_page_shows_result_and_no_score(client, fake_screening):
+    html = post_screening(client, stenosis50="on").get_data(as_text=True)
+    assert "Very high risk" in html and "No score is calculated" in html
+    assert fake_screening == [(1, "very_high", ["cvd_documented"], [])]
+    assert "Continue to the score" not in html
+
+
+def test_proceed_with_all_values_redirects_to_score(client, fake_screening):
+    response = post_screening(client, egfr="90", total_chol="200", ldl="100", sbp="120")
+    assert response.status_code == 302 and "/risk?" in response.headers["Location"]
+    assert "patient=1" in response.headers["Location"]
+
+
+def test_proceed_with_missing_values_lists_labs_and_continues(client):
+    html = post_screening(client, lang="de").get_data(as_text=True)
+    assert "Kein hohes Risiko gefunden" in html and "Nierenwerte" in html and "Weiter zum Score" in html
+
+
+def test_questionnaire_is_translated_in_all_languages(client):
+    for lang, word in [("de", "Fragebogen"), ("en", "questionnaire"), ("fr", "questionnaire"), ("ar", "استبيان")]:
+        assert word in client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
+
+
+def test_screening_texts_exist_in_every_language():
+    keys = set(texts["en"])
+    for lang in ("de", "fr", "ar"):
+        assert set(texts[lang]) == keys, lang
+    for key in sc.CHECK_KEYS:
+        prefix = "m_" if key in sc.MODIFIERS else "c_"
+        assert prefix + key in keys, key
+
+
+def test_questionnaire_page_for_invisible_patient_redirects_home(client):
+    assert client.get("/screening?patient=555").status_code == 302
+
+
+def test_score_without_questionnaire_goes_to_questionnaire(client, fake_risk, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda patient_id: None)
+    response = post_risk(client)
+    assert response.status_code == 302 and "/screening?" in response.headers["Location"]
+    assert fake_risk == []
+    assert "/screening?" in client.get("/risk?patient=1").headers["Location"]
+
+
+@pytest.mark.parametrize("level", ["very_high", "high"])
+def test_score_is_blocked_after_high_risk_questionnaire(client, fake_risk, monkeypatch, level):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda patient_id: (level, ["ckd_moderate"], []))
+    html = post_risk(client, lang="en").get_data(as_text=True)
+    assert "No score is calculated" in html and "Risk calculated" not in html
+    assert fake_risk == []
+
+
+def test_modifiers_raise_low_score_to_medium(client, fake_risk, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda patient_id: ("proceed", [], ["sedentary"]))
+    html = post_risk(client, lang="en", age="35", cholesterol="170", hdl="60", blood_pressure="110").get_data(as_text=True)
+    assert "additional risk factors apply" in html and "Lack of exercise" in html
+    assert "badge-medium" in html
+
+
+def test_modifiers_do_not_change_high_scores(client, fake_risk, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda patient_id: ("proceed", [], ["sedentary"]))
+    html = post_risk(client, lang="en", age="70", cholesterol="280", hdl="35", blood_pressure="170",
+                     smoking="current", cigarettes="20").get_data(as_text=True)
+    assert "additional risk factors apply" not in html
+
+
+def test_screening_db_roundtrip(tmp_path, monkeypatch):
+    import fhir_db
+    monkeypatch.chdir(tmp_path)
+    fhir_db.create_patients_table(); fhir_db.create_screenings_table()
+    pid = fhir_db.add_patient("Q", "x")
+    assert fhir_db.get_latest_screening(pid) is None
+    fhir_db.save_screening(pid, "high", ["diabetes"], ["hiv"])
+    fhir_db.save_screening(pid, "proceed", [], [])
+    assert fhir_db.get_latest_screening(pid) == ("proceed", [], [])
+    fhir_db.save_screening(pid, "very_high", ["cvd_documented", "ckd_severe"], ["sedentary", "hiv"])
+    assert fhir_db.get_latest_screening(pid) == ("very_high", ["cvd_documented", "ckd_severe"], ["sedentary", "hiv"])

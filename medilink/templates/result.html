@@ -4,6 +4,11 @@
 <h1>{{ message }}</h1>
 {% if smoking_line %}<p>{{ smoking_line }}</p>{% endif %}
 
+{% if modifier_keys %}
+<p class="hint" style="color:#fbbf24;">{{ t.mod_note }}</p>
+<ul class="tips">{% for key in modifier_keys %}<li>{{ t['m_' ~ key] }}</li>{% endfor %}</ul>
+{% endif %}
+
 {% if tips %}
 <p class="badge badge-{{ category }}">{{ t['cat_' ~ category] }}</p>
 <h2>{{ t.tips_title }}</h2>

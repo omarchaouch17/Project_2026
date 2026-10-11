@@ -69,6 +69,7 @@ def print_patients_with_conditions():
 
 def delete_patient(patient_id):
     db.execute_many([
+        ("DELETE FROM screenings WHERE patient_id = ?", (patient_id,)),
         ("DELETE FROM risk_scores WHERE patient_id = ?", (patient_id,)),
         ("DELETE FROM conditions WHERE patient_id = ?", (patient_id,)),
         ("DELETE FROM patients WHERE id = ?", (patient_id,)),
@@ -149,6 +150,39 @@ _VISITS_DDL = """
         first_visit TEXT
     )
 """
+
+
+def create_screenings_table():
+    """Result of the step-1 questionnaire (only the outcome, not the single answers)."""
+    db.execute(f"""
+        CREATE TABLE IF NOT EXISTS screenings (
+            id {db.id_column()},
+            patient_id INTEGER NOT NULL,
+            recorded_on TEXT NOT NULL,
+            level TEXT NOT NULL,
+            reasons TEXT,
+            modifiers TEXT
+        )
+    """)
+
+
+def save_screening(patient_id, level, reasons, modifiers):
+    db.execute(
+        "INSERT INTO screenings (patient_id, recorded_on, level, reasons, modifiers) VALUES (?, ?, ?, ?, ?)",
+        (patient_id, datetime.date.today().isoformat(), level, ",".join(reasons), ",".join(modifiers))
+    )
+
+
+def get_latest_screening(patient_id):
+    """(level, [reason keys], [modifier keys]) of the newest questionnaire, or None if there is none."""
+    rows = db.query("""
+        SELECT level, reasons, modifiers FROM screenings
+        WHERE patient_id = ? ORDER BY id DESC LIMIT 1
+    """, (patient_id,))
+    if not rows:
+        return None
+    level, reasons, modifiers = rows[0]
+    return level, [r for r in (reasons or "").split(",") if r], [m for m in (modifiers or "").split(",") if m]
 
 
 def create_visits_table():
@@ -245,8 +279,10 @@ def create_all_tables():
     """Called once at start-up: create missing tables, then migrate old German data if there is any."""
     if db.table_exists("patienten"):
         migrate_german_schema()
+        create_screenings_table()
         return
     create_patients_table()
     create_conditions_table()
     create_risk_scores_table()
     create_visits_table()
+    create_screenings_table()

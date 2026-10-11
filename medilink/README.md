@@ -56,3 +56,13 @@ python -m pytest -q  # tests
 `db.py` · `fhir_db.py` · `translations.py` · `templates/` · `test_app.py`, `test_risk.py`
 
 Not a diagnostic tool – for learning and demonstration only. Please enter invented data only.
+
+## Step 1: questionnaire before the score
+
+MediLink follows the pathway "Evaluation du risque cardiovasculaire" (INEAS 2022, figure 5):
+
+1. **Questionnaire** (`/screening`): known cardiovascular disease, diabetes, kidney function (creatinine -> eGFR with CKD-EPI 2021, or eGFR typed in), single severe risk factors (total cholesterol > 310 mg/dL, LDL > 190 mg/dL, blood pressure >= 180/110), organ damage from hypertension. Any hit gives **very high** or **high** risk: no score is calculated, treatment and assessment come first. Unknown values produce a list of labs to ask for.
+2. **Score** (`/risk`): only reachable after a questionnaire without a high-risk finding. MediLink uses Framingham / ATP III (the pathway itself uses Globorisk).
+3. **Risk modifiers** (12 factors, e.g. sedentary lifestyle, HIV treatment): if the score is below 10 % and at least one applies, the category is raised from low to medium.
+
+Logic: `screening.py` (pure functions, tested), texts: `screening_texts.py` (DE/EN/FR/AR), table `screenings` stores only the outcome.

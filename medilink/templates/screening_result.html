@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if level == 'proceed' %}
+<h1>{{ t.sc_proceed_title }}</h1>
+<p><strong>{{ name }}</strong></p>
+<p>{{ t.sc_proceed_text }}</p>
+{% else %}
+<h1>{{ name }}: {{ t['sc_res_' ~ level ~ '_title'] }}</h1>
+<p class="badge badge-high">{{ t['sc_res_' ~ level ~ '_title'] }}</p>
+<p>{{ t['sc_res_' ~ level ~ '_text'] }}</p>
+{% endif %}
+
+{% if reasons %}
+<h2>{{ t.sc_reasons_title }}</h2>
+<ul class="tips">{% for key in reasons %}<li>{{ t['r_' ~ key] }}</li>{% endfor %}</ul>
+{% endif %}
+{% if egfr is not none %}<p class="hint">{{ t.sc_egfr_shown.format(v=egfr) }}</p>{% endif %}
+
+{% if missing %}
+<h2>{{ t.sc_labs_title }}</h2>
+<ul class="tips">{% for key in missing %}<li>{{ t[key] }}</li>{% endfor %}</ul>
+<p class="hint" style="color:#fbbf24;">{{ t.sc_missing_note }}</p>
+{% endif %}
+
+{% if level == 'proceed' %}
+<p><a href="/risk?patient={{ patient_id }}&lang={{ lang }}"><button type="button">{{ t.sc_continue }}</button></a></p>
+{% endif %}
+<p><a href="/screening?patient={{ patient_id }}&lang={{ lang }}">{{ t.sc_again }}</a></p>
+
+<p class="emergency" role="note">{{ t.emergency }}</p>
+<p class="hint">{{ t.no_advice }}</p>
+<p class="hint">{{ t.sc_source }}</p>
+<br>
+<a href="/?lang={{ lang }}">{{ t.back }}</a>
+{% endblock %}

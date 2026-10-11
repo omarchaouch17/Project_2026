@@ -529,3 +529,9 @@ def category_name(key, language):
     """Display name of a category in the target language (unknown values stay unchanged)."""
     entry = CATEGORY_TRANSLATIONS.get(to_canonical_category(key))
     return entry[language] if entry else key
+
+
+# Step-1 questionnaire texts (own file because of their size)
+from screening_texts import SCREENING_TEXTS  # noqa: E402
+for _lang, _extra in SCREENING_TEXTS.items():
+    texts[_lang].update(_extra)
