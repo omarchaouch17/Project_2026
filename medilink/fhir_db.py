@@ -1,157 +1,246 @@
+"""fhir_db.py - FHIR-inspired tables: patients, conditions, risk_scores (+ visits for the counter).
+
+* patients     ~ FHIR Patient
+* conditions   ~ FHIR Condition (code_text, category_text, clinical_status)
+* risk_scores  ~ FHIR RiskAssessment (one row per calculated Framingham score)
+"""
 import datetime
 
 import db
+from translations import to_canonical_category, to_canonical_diagnosis
 
 
-def erstelle_tabelle():
-    db.ausfuehren(f"""
-        CREATE TABLE IF NOT EXISTS patienten (
-            id {db.id_spalte()},
+def _patients_ddl():
+    return f"""
+        CREATE TABLE IF NOT EXISTS patients (
+            id {db.id_column()},
             name TEXT,
-            diagnose TEXT
+            diagnosis TEXT
         )
-    """)
+    """
 
 
-def patient_hinzufuegen(name, diagnose):
-    return db.einfuegen("INSERT INTO patienten (name, diagnose) VALUES (?, ?)", (name, diagnose))
+def create_patients_table():
+    db.execute(_patients_ddl())
 
 
-def erstelle_condition_tabelle():
-    db.ausfuehren(f"""
+def add_patient(name, diagnosis):
+    return db.insert("INSERT INTO patients (name, diagnosis) VALUES (?, ?)", (name, diagnosis))
+
+
+def _conditions_ddl():
+    return f"""
         CREATE TABLE IF NOT EXISTS conditions (
-            id {db.id_spalte()},
+            id {db.id_column()},
             patient_id INTEGER,
             code_text TEXT,
             category_text TEXT,
             clinical_status TEXT,
-            FOREIGN KEY (patient_id) REFERENCES patienten (id)
+            FOREIGN KEY (patient_id) REFERENCES patients (id)
         )
-    """)
+    """
 
 
-def condition_hinzufuegen(patient_id, code_text, category_text, clinical_status="active"):
-    db.ausfuehren(
+def create_conditions_table():
+    db.execute(_conditions_ddl())
+
+
+def add_condition(patient_id, code_text, category_text, clinical_status="active"):
+    db.execute(
         "INSERT INTO conditions (patient_id, code_text, category_text, clinical_status) VALUES (?, ?, ?, ?)",
         (patient_id, code_text, category_text, clinical_status)
     )
 
 
-def patient_mit_diagnosen_anzeigen():
-    for zeile in db.abfrage("""
-        SELECT patienten.name, conditions.code_text, conditions.category_text, conditions.clinical_status
-        FROM patienten
-        JOIN conditions ON patienten.id = conditions.patient_id
+def print_patients_with_conditions():
+    for row in db.query("""
+        SELECT patients.name, conditions.code_text, conditions.category_text, conditions.clinical_status
+        FROM patients
+        JOIN conditions ON patients.id = conditions.patient_id
     """):
-        print(zeile)
+        print(row)
 
 
-def patient_loeschen(patient_id):
-    db.mehrere([
+def delete_patient(patient_id):
+    db.execute_many([
         ("DELETE FROM risk_scores WHERE patient_id = ?", (patient_id,)),
         ("DELETE FROM conditions WHERE patient_id = ?", (patient_id,)),
-        ("DELETE FROM patienten WHERE id = ?", (patient_id,)),
+        ("DELETE FROM patients WHERE id = ?", (patient_id,)),
     ])
 
 
-def erstelle_risk_score_tabelle():
-    db.ausfuehren(f"""
+def _risk_scores_ddl():
+    return f"""
         CREATE TABLE IF NOT EXISTS risk_scores (
-            id {db.id_spalte()},
+            id {db.id_column()},
             patient_id INTEGER,
-            datum TEXT,
-            alter_wert INTEGER,
-            cholesterin DOUBLE PRECISION,
+            recorded_on TEXT,
+            age INTEGER,
+            total_cholesterol DOUBLE PRECISION,
             hdl DOUBLE PRECISION,
-            blutdruck DOUBLE PRECISION,
-            raucher INTEGER,
-            behandelt INTEGER,
-            risiko_prozent DOUBLE PRECISION,
-            zigaretten_pro_tag INTEGER,
-            FOREIGN KEY (patient_id) REFERENCES patienten (id)
+            systolic_bp DOUBLE PRECISION,
+            smoker INTEGER,
+            treated_hypertension INTEGER,
+            risk_percent DOUBLE PRECISION,
+            cigarettes_per_day INTEGER,
+            FOREIGN KEY (patient_id) REFERENCES patients (id)
         )
-    """)
-    # Bestehende Datenbanken (ohne die neue Spalte) beim Start erweitern
-    if "zigaretten_pro_tag" not in db.spalten("risk_scores"):
-        db.ausfuehren("ALTER TABLE risk_scores ADD COLUMN zigaretten_pro_tag INTEGER")
+    """
 
 
-def hole_neuestes_risiko(patient_id):
-    zeilen = db.abfrage("""
-        SELECT risiko_prozent, datum
+def create_risk_scores_table():
+    db.execute(_risk_scores_ddl())
+
+
+def get_latest_risk(patient_id):
+    rows = db.query("""
+        SELECT risk_percent, recorded_on
         FROM risk_scores
         WHERE patient_id = ?
-        ORDER BY datum DESC, id DESC
+        ORDER BY recorded_on DESC, id DESC
         LIMIT 1
     """, (patient_id,))
-    return zeilen[0] if zeilen else None
+    return rows[0] if rows else None
 
 
-def risiko_speichern(patient_id, alter_wert, cholesterin, hdl, blutdruck, raucher, behandelt, risiko_prozent,
-                     zigaretten_pro_tag=None):
-    db.ausfuehren(
-        "INSERT INTO risk_scores (patient_id, datum, alter_wert, cholesterin, hdl, blutdruck, raucher, behandelt, risiko_prozent, zigaretten_pro_tag) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (patient_id, datetime.date.today().isoformat(), alter_wert, cholesterin, hdl, blutdruck,
-         int(bool(raucher)), int(bool(behandelt)), risiko_prozent, zigaretten_pro_tag)
+def save_risk(patient_id, age, total_cholesterol, hdl, systolic_bp, smoker, treated_hypertension,
+              risk_percent, cigarettes_per_day=None):
+    db.execute(
+        "INSERT INTO risk_scores (patient_id, recorded_on, age, total_cholesterol, hdl, systolic_bp, smoker, "
+        "treated_hypertension, risk_percent, cigarettes_per_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (patient_id, datetime.date.today().isoformat(), age, total_cholesterol, hdl, systolic_bp,
+         int(bool(smoker)), int(bool(treated_hypertension)), risk_percent, cigarettes_per_day)
     )
 
 
-def hole_alle_risiken(patient_id):
-    return db.abfrage("""
-        SELECT risiko_prozent, datum
+def get_all_risks(patient_id):
+    return db.query("""
+        SELECT risk_percent, recorded_on
         FROM risk_scores
         WHERE patient_id = ?
-        ORDER BY datum DESC, id DESC
+        ORDER BY recorded_on DESC, id DESC
     """, (patient_id,))
 
 
-def hole_patienten_mit_diagnosen():
-    """(name, diagnose, kategorie, patient_id) - Patienten ohne Diagnose haben None."""
-    return db.abfrage("""
-        SELECT patienten.name, conditions.code_text, conditions.category_text, patienten.id
-        FROM patienten
-        LEFT JOIN conditions ON patienten.id = conditions.patient_id
-        ORDER BY patienten.id, conditions.id
+def get_patients_with_conditions():
+    """(name, diagnosis, category, patient_id) - patients without a condition have None."""
+    return db.query("""
+        SELECT patients.name, conditions.code_text, conditions.category_text, patients.id
+        FROM patients
+        LEFT JOIN conditions ON patients.id = conditions.patient_id
+        ORDER BY patients.id, conditions.id
     """)
 
 
-def hole_alle_patienten():
-    """Alle Patienten als [(id, name), ...], alphabetisch."""
-    return db.abfrage("SELECT id, name FROM patienten ORDER BY LOWER(name), id")
+def get_all_patients():
+    """All patients as [(id, name), ...], alphabetical."""
+    return db.query("SELECT id, name FROM patients ORDER BY LOWER(name), id")
 
 
-def erstelle_besuche_tabelle():
-    """Zaehlt Besucher ohne personenbezogene Daten: nur ein zufaelliger Token (keine IP-Adresse)."""
-    db.ausfuehren("""
-        CREATE TABLE IF NOT EXISTS besuche (
-            token TEXT PRIMARY KEY,
-            erster_besuch TEXT
-        )
-    """)
+_VISITS_DDL = """
+    CREATE TABLE IF NOT EXISTS visits (
+        token TEXT PRIMARY KEY,
+        first_visit TEXT
+    )
+"""
 
 
-def besuch_zaehlen(token):
-    db.ausfuehren(
-        "INSERT INTO besuche (token, erster_besuch) VALUES (?, ?) ON CONFLICT (token) DO NOTHING",
+def create_visits_table():
+    """Counts visitors without personal data: only a random token (no IP address)."""
+    db.execute(_VISITS_DDL)
+
+
+def count_visit(token):
+    db.execute(
+        "INSERT INTO visits (token, first_visit) VALUES (?, ?) ON CONFLICT (token) DO NOTHING",
         (token, datetime.datetime.now().isoformat(timespec="seconds")))
 
 
-def hole_statistik():
-    """Gesamtzahlen: Besucher, Patienten, Berechnungen, durchschnittliches Risiko."""
-    besucher = db.abfrage("SELECT COUNT(*) FROM besuche")[0][0]
-    patienten = db.abfrage("SELECT COUNT(*) FROM patienten")[0][0]
-    berechnungen, durchschnitt = db.abfrage("SELECT COUNT(*), AVG(risiko_prozent) FROM risk_scores")[0]
-    return {"besucher": besucher, "patienten": patienten, "berechnungen": berechnungen,
-            "durchschnitt": round(float(durchschnitt), 1) if durchschnitt is not None else None}
+def get_statistics():
+    """Totals: visitors, patients, calculations, average risk."""
+    visitors = db.query("SELECT COUNT(*) FROM visits")[0][0]
+    patients = db.query("SELECT COUNT(*) FROM patients")[0][0]
+    calculations, average = db.query("SELECT COUNT(*), AVG(risk_percent) FROM risk_scores")[0]
+    return {"visitors": visitors, "patients": patients, "calculations": calculations,
+            "average": round(float(average), 1) if average is not None else None}
 
 
-def hole_alle_eintraege(limit=200):
-    """Alle Berechnungen (neueste zuerst) inkl. Name - Anonymisierung passiert erst in der App."""
-    return db.abfrage("""
-        SELECT risk_scores.id, risk_scores.patient_id, risk_scores.datum, risk_scores.alter_wert,
-               risk_scores.cholesterin, risk_scores.hdl, risk_scores.blutdruck, risk_scores.raucher,
-               risk_scores.zigaretten_pro_tag, risk_scores.risiko_prozent, patienten.name
-        FROM risk_scores LEFT JOIN patienten ON patienten.id = risk_scores.patient_id
-        ORDER BY risk_scores.datum DESC, risk_scores.id DESC
+def get_all_entries(limit=200):
+    """All calculations (newest first) incl. the name - anonymisation happens later, in the app."""
+    return db.query("""
+        SELECT risk_scores.id, risk_scores.patient_id, risk_scores.recorded_on, risk_scores.age,
+               risk_scores.total_cholesterol, risk_scores.hdl, risk_scores.systolic_bp, risk_scores.smoker,
+               risk_scores.cigarettes_per_day, risk_scores.risk_percent, patients.name
+        FROM risk_scores LEFT JOIN patients ON patients.id = risk_scores.patient_id
+        ORDER BY risk_scores.recorded_on DESC, risk_scores.id DESC
         LIMIT ?
     """, (limit,))
+
+
+# ---------------------------------------------------------------------------------------------
+# Migration: databases created by the German version (tables patienten, besuche, columns datum,
+# alter_wert, ...) are copied once into the English tables. Everything runs in ONE transaction.
+# ---------------------------------------------------------------------------------------------
+
+def _reset_sequence(table):
+    """PostgreSQL only: after copying rows with explicit ids the next automatic id must be higher."""
+    return (f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+            f"COALESCE((SELECT MAX(id) FROM {table}), 1), (SELECT MAX(id) FROM {table}) IS NOT NULL)", ())
+
+
+def migrate_german_schema():
+    """Copy data from the old German schema into the English one; returns True if something was migrated."""
+    if not db.table_exists("patienten"):
+        return False
+
+    old_patients = db.query("SELECT id, name, diagnose FROM patienten")
+    old_conditions = []
+    if db.table_exists("conditions"):
+        old_conditions = db.query("SELECT id, patient_id, code_text, category_text, clinical_status FROM conditions")
+    old_scores = []
+    if db.table_exists("risk_scores") and "alter_wert" in db.columns("risk_scores"):
+        zig = "zigaretten_pro_tag" if "zigaretten_pro_tag" in db.columns("risk_scores") else "NULL"
+        old_scores = db.query(
+            f"SELECT id, patient_id, datum, alter_wert, cholesterin, hdl, blutdruck, raucher, behandelt, "
+            f"risiko_prozent, {zig} FROM risk_scores")
+    old_visits = db.query("SELECT token, erster_besuch FROM besuche") if db.table_exists("besuche") else []
+
+    # Everything below runs in ONE transaction: drop the old tables, create the new ones, copy the rows.
+    statements = []
+    for table in ("conditions", "risk_scores"):
+        if db.table_exists(table):
+            statements.append((f"DROP TABLE {table}", ()))
+    statements.append(("DROP TABLE patienten", ()))
+    if db.table_exists("besuche"):
+        statements.append(("DROP TABLE besuche", ()))
+    statements += [(_patients_ddl(), ()), (_conditions_ddl(), ()), (_risk_scores_ddl(), ()), (_VISITS_DDL, ())]
+
+    copy = statements
+    for pid, name, diagnose in old_patients:
+        copy.append(("INSERT INTO patients (id, name, diagnosis) VALUES (?, ?, ?)",
+                     (pid, name, "see conditions" if diagnose == "siehe conditions" else diagnose)))
+    for cid, pid, code, category, status in old_conditions:
+        copy.append(("INSERT INTO conditions (id, patient_id, code_text, category_text, clinical_status) "
+                     "VALUES (?, ?, ?, ?, ?)",
+                     (cid, pid, to_canonical_diagnosis(code), to_canonical_category(category), status)))
+    for row in old_scores:
+        copy.append(("INSERT INTO risk_scores (id, patient_id, recorded_on, age, total_cholesterol, hdl, systolic_bp, "
+                     "smoker, treated_hypertension, risk_percent, cigarettes_per_day) "
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", tuple(row)))
+    for token, first in old_visits:
+        copy.append(("INSERT INTO visits (token, first_visit) VALUES (?, ?)", (token, first)))
+    if db.postgres_enabled():
+        copy += [_reset_sequence(t) for t in ("patients", "conditions", "risk_scores")]
+    db.execute_many(copy)
+    return True
+
+
+def create_all_tables():
+    """Called once at start-up: create missing tables, then migrate old German data if there is any."""
+    if db.table_exists("patienten"):
+        migrate_german_schema()
+        return
+    create_patients_table()
+    create_conditions_table()
+    create_risk_scores_table()
+    create_visits_table()

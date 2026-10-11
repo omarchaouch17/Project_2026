@@ -1,53 +1,58 @@
 # MediLink
 
-Mehrsprachige Gesundheits-Webanwendung (Flask + SQLite) mit Framingham-Herzrisiko-Score.
-Portfolio-Projekt im Rahmen meines Studiums Medizinische Informatik (HSNR Krefeld).
+Multilingual health web application (Flask + SQLite/PostgreSQL) with the Framingham 10-year heart-risk score.
+Portfolio project from my Medical Informatics studies (HSNR Krefeld). English is the default language.
 
-**Live-Demo:** https://medilink-trbk.onrender.com
-(Free-Tier: der erste Aufruf kann ~30 s dauern; die Datenbank wird bei jedem Deploy zurückgesetzt.)
+**Live demo:** https://medilink-trbk.onrender.com
+(Render free tier: the first request can take ~30 s.)
 
-## Ablauf
-1. **Neuer Patient** – Name, Diagnose (Auswahlliste oder "Andere"), Kategorie (Auswahlliste).
-2. **Automatische Weiterleitung** zur Risikoberechnung, der neue Patient ist bereits ausgewählt.
-3. **Risiko-Score** – Geschlecht, Alter, Cholesterin, HDL, Blutdruck, Rauchstatus
-   (nie / Ex / aktuell + Zigaretten pro Tag), Blutdruckbehandlung.
-4. **Ergebnis** – 10-Jahres-Risiko in %, Risikokategorie (ATP III: <10 / 10–20 / >20 %),
-   allgemeine Hinweise, Notruf-Hinweis, Haftungsausschluss.
-5. **Verlauf** je Patient; Löschen per POST mit Rückfrage.
+## Flow
+1. **New patient** – name, diagnosis (dropdown or "Other"), category (dropdown).
+2. **Automatic redirect** to the risk calculation with the new patient preselected.
+3. **Risk score** – sex, age, cholesterol, HDL, blood pressure, smoking status
+   (never / former / current + cigarettes per day), blood-pressure treatment.
+4. **Result** – 10-year risk in %, risk category (ATP III: <10 / 10–20 / >20 %),
+   general advice, emergency note, disclaimer.
+5. **History** per patient; deletion via POST with confirmation.
 
-## Funktionen
-- 4 Sprachen: Deutsch, Englisch, Französisch, Arabisch (inkl. RTL-Layout) – alle Texte, Fehlermeldungen und Hinweise
-- Eingabeprüfung auf Server **und** im Browser (rote Fehlermeldungen, Wertebereiche, HDL < Gesamtcholesterin)
-- Regelbasierte Hinweise (keine Medikamente/Dosierungen, keine ärztliche Beratung)
-- FHIR-inspirierte Datenbank (Patient, Condition, Risk-Score), automatische Migration
-- Einstiegsanimation (respektiert `prefers-reduced-motion`)
-- ~100 automatisierte Tests (pytest)
+## Features
+- 4 languages: English (default), German, French, Arabic (incl. RTL layout) – all texts, errors and advice
+- Input validation on the server **and** in the browser (ranges, HDL < total cholesterol)
+- Rule-based advice (no medication, no dosages, no medical advice)
+- Free rule-based help assistant (`faq.py`) and an optional AI assistant (Claude API, `ANTHROPIC_API_KEY`) with message limits and emergency-word detection
+- FHIR-inspired database (Patient, Condition, risk score) with automatic migration
+- Intro animation (respects `prefers-reduced-motion`)
+- 150+ automated tests (pytest)
 
-## Datenschutz & Statistik
-- `/statistik`: anonyme Übersicht (Besucher, Patienten, Berechnungen, Ø-Risiko, Liste ohne Namen).
-- Patienten anderer Besucher erscheinen nur als "Anonym #n"; Namen, Verlauf und Löschen nur für den eigenen Browser.
-- Besucherzähler ohne IP-Adresse (zufälliger Token im Cookie).
-- Admin-Ansicht (alle Namen/Werte): Umgebungsvariablen `ADMIN_KEY` und `SECRET_KEY` setzen, dann `/admin?key=...` aufrufen.
+## Privacy & statistics
+- `/statistics`: anonymous totals (visitors, patients, calculations, average risk) plus the visitor's own entries.
+- Every visitor sees only their own patients and entries (no other visitor's data, not even anonymously). Only the admin sees everything.
+- Visitor counter without IP addresses (random token in a cookie).
+- Admin view (all names/values): set `ADMIN_KEY` and `SECRET_KEY`, then open `/admin?key=...`.
 
-## Dauerhafte Speicherung
-- Ohne Konfiguration nutzt die App eine lokale SQLite-Datei (`patienten.db`).
-- Mit der Umgebungsvariable `DATABASE_URL` (PostgreSQL, z. B. kostenlos bei Neon) bleiben alle Daten dauerhaft erhalten,
-  auch bei Neustart und Deploy auf Render. Die Schicht `db.py` übersetzt die SQL-Anweisungen automatisch.
-- Die Tests benutzen nie die echte Datenbank (`conftest.py`).
+## Waiting page (Render cold start)
+`wake/index.html` is a static page (host it for free, e.g. GitHub Pages) that shows an animated half-circle with "Welcome" in four languages
+while the sleeping Render server wakes up. It pings `/health` and redirects to the app as soon as the server answers.
+`/health` is not counted as a visit.
 
-## Hinweis zum Rauchen
-Der Framingham-Score verwendet nur "aktuell Raucher: ja/nein". Die Zigarettenanzahl wird
-zur Dokumentation gespeichert und angezeigt, verändert den Prozentwert aber nicht.
+## Persistent storage
+- Without configuration the app uses a local SQLite file (`patients.db`).
+- With the environment variable `DATABASE_URL` (PostgreSQL, e.g. free on Neon) all data survives restarts and deploys on Render. `db.py` translates the SQL automatically.
+- Databases created by the earlier German version (`patienten`, `besuche`, …) are migrated automatically on start-up, in one transaction (see `migrate_german_schema` in `fhir_db.py`).
+- Tests never touch the real database (`conftest.py`).
 
-## Lokal starten
+## About smoking
+The Framingham score only uses "current smoker: yes/no". The number of cigarettes is stored and shown for documentation but does not change the percentage.
+
+## Run locally
 ```
 pip install -r requirements.txt
 python app.py        # http://127.0.0.1:5000
-python -m pytest -q  # Tests
+python -m pytest -q  # tests
 ```
 
-## Struktur
-`app.py` (Routen) · `validierung.py` · `risk.py` (Framingham) · `ratschlaege.py` ·
-`fhir_db.py` (SQLite) · `translations.py` · `templates/` · `test_app.py`, `test_risk.py`
+## Structure
+`app.py` (routes) · `validation.py` · `risk.py` (Framingham) · `advice.py` · `faq.py` · `assistant.py` ·
+`db.py` · `fhir_db.py` · `translations.py` · `templates/` · `test_app.py`, `test_risk.py`
 
-Kein Diagnoseinstrument – nur zu Lern- und Demonstrationszwecken.
+Not a diagnostic tool – for learning and demonstration only. Please enter invented data only.

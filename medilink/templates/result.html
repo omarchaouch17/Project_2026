@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ message }}</h1>
+{% if smoking_line %}<p>{{ smoking_line }}</p>{% endif %}
+
+{% if tips %}
+<p class="badge badge-{{ category }}">{{ t['cat_' ~ category] }}</p>
+<h2>{{ t.tips_title }}</h2>
+<ul class="tips">
+    {% for k in tips %}<li>{{ t[k] }}</li>{% endfor %}
+</ul>
+<p class="emergency" role="note">{{ t.emergency }}</p>
+<p class="hint">{{ t.no_advice }}</p>
+{% endif %}
+
+<section class="chat" aria-label="{{ t.chat_title_faq if not chat_enabled else t.chat_title }}">
+    <h2>{{ t.chat_title if chat_enabled else t.chat_title_faq }}</h2>
+    <p class="hint">{{ t.chat_hint if chat_enabled else t.chat_hint_faq }}</p>
+    <div id="chat-log" aria-live="polite"></div>
+    {% if not chat_enabled %}
+    <p class="hint" style="margin-bottom:4px;">{{ t.chat_suggestion }}</p>
+    <div id="chat-chips">{% for question in suggestions %}<button type="button" class="chip">{{ question }}</button>{% endfor %}</div>
+    {% endif %}
+    <form id="chat-form" autocomplete="off">
+        <input id="chat-input" maxlength="500" placeholder="{{ t.chat_placeholder }}" aria-label="{{ t.chat_placeholder }}">
+        <button type="submit" id="chat-send">{{ t.chat_send }}</button>
+    </form>
+</section>
+<style>
+    .chat { border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; margin: 18px 0; text-align: start; }
+    #chat-log { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+    .msg { padding: 8px 12px; border-radius: 10px; max-width: 90%; white-space: pre-wrap; }
+    .msg-user { background: #0369a1; color: #fff; align-self: flex-end; }
+    .msg-bot { background: #1e293b; color: #e2e8f0; align-self: flex-start; }
+    .msg-err { background: #450a0a; color: #fecaca; align-self: flex-start; }
+    #chat-form { display: flex; gap: 8px; }
+    #chat-input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font: inherit; }
+    #chat-send { padding: 8px 16px; border-radius: 6px; border: 0; background: #0284c7; color: #fff; cursor: pointer; font: inherit; }
+    #chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip { background: #1e293b; color: #7dd3fc; border: 1px solid #334155; border-radius: 999px; padding: 4px 12px; cursor: pointer; font: inherit; font-size: .85em; }
+    .chip:hover { background: #0c4a6e; }
+    #chat-send:disabled { opacity: .5; cursor: wait; }
+</style>
+<script>
+(function () {
+    var T = {{ {"thinking": t.chat_thinking, "error": t.chat_error}|tojson }};
+    var log = document.getElementById('chat-log'), form = document.getElementById('chat-form');
+    var input = document.getElementById('chat-input'), sendButton = document.getElementById('chat-send');
+    var history = [];
+    function show(cssClass, text) {
+        var d = document.createElement('div'); d.className = 'msg ' + cssClass; d.textContent = text;   // textContent: kein HTML
+        log.appendChild(d); return d;
+    }
+    document.querySelectorAll('.chip').forEach(function (c) {
+        c.addEventListener('click', function () { input.value = c.textContent; form.requestSubmit(); });
+    });
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var question = input.value.trim();
+        if (!question) { return; }
+        show('msg-user', question); input.value = ''; sendButton.disabled = true;
+        var pending = show('msg-bot', T.thinking);
+        fetch('/chat?lang={{ lang }}', {method: 'POST', headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({message: question, history: history.slice(-6)})})
+        .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, j: j}; }); })
+        .then(function (res) {
+            if (res.ok && res.j.answer) {
+                pending.textContent = res.j.answer;
+                history.push({role: 'user', content: question}, {role: 'assistant', content: res.j.answer});
+            } else { pending.className = 'msg msg-err'; pending.textContent = res.j.error || T.error; }
+        })
+        .catch(function () { pending.className = 'msg msg-err'; pending.textContent = T.error; })
+        .then(function () { sendButton.disabled = false; input.focus(); });
+    });
+})();
+</script>
+
+<br>
+<a href="/?lang={{ lang }}">{{ t.back }}</a>
+{% endblock %}

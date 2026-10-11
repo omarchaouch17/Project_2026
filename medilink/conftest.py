@@ -1,4 +1,4 @@
-"""Wird von pytest vor allen Tests geladen: Tests benutzen NIE die echte Datenbank (Neon/PostgreSQL)."""
+"""Loaded by pytest before all tests: tests NEVER use the real database (Neon/PostgreSQL)."""
 import os
 
 os.environ.pop("DATABASE_URL", None)

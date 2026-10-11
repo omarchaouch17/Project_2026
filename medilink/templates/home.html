@@ -1,28 +1,28 @@
 {% extends "base.html" %}
 
-{% block inhalt %}
-<!-- Intro: ca. 3,5 s, nur beim ersten Besuch pro Sitzung, per Klick ueberspringbar, aus bei "reduzierte Bewegung" -->
+{% block content %}
+<!-- Intro: about 3.5 s, only on the first visit per session, can be skipped with a click, off for "reduced motion" -->
 <div id="intro" aria-hidden="true">
-    <div class="gitter"></div>
-    {% for text, links, verzoegerung, dauer in [("120/80", 8, 0.1, 3.4), ("HDL 50", 20, 0.9, 3.8), ("6.5 %", 33, 0.4, 3.2), ("SpO₂ 98", 47, 1.3, 3.6), ("LDL", 60, 0.6, 4.0), ("mmHg", 74, 0.2, 3.3), ("FHIR", 88, 1.1, 3.7), ("70 bpm", 14, 1.7, 3.1), ("mg/dL", 68, 1.9, 3.5), ("NEWS2", 41, 2.0, 3.0)] %}
-    <span class="wert" style="left:{{ links }}%; animation-delay:{{ verzoegerung }}s; animation-duration:{{ dauer }}s">{{ text }}</span>
+    <div class="grid"></div>
+    {% for text, left, delay, duration in [("120/80", 8, 0.1, 3.4), ("HDL 50", 20, 0.9, 3.8), ("6.5 %", 33, 0.4, 3.2), ("SpO₂ 98", 47, 1.3, 3.6), ("LDL", 60, 0.6, 4.0), ("mmHg", 74, 0.2, 3.3), ("FHIR", 88, 1.1, 3.7), ("70 bpm", 14, 1.7, 3.1), ("mg/dL", 68, 1.9, 3.5), ("NEWS2", 41, 2.0, 3.0)] %}
+    <span class="rising" style="left:{{ left }}%; animation-delay:{{ delay }}s; animation-duration:{{ duration }}s">{{ text }}</span>
     {% endfor %}
 
-    <div class="buehne">
-        <div class="herz-wrap">
-            <svg class="herz" viewBox="0 0 100 96" width="92" height="88" role="presentation">
+    <div class="stage">
+        <div class="heart-wrap">
+            <svg class="heart" viewBox="0 0 100 96" width="92" height="88" role="presentation">
                 <path pathLength="1000" d="M50 88 C20 66 8 48 8 32 C8 18 19 8 32 8 C40 8 47 12 50 19 C53 12 60 8 68 8 C81 8 92 18 92 32 C92 48 80 66 50 88 Z" />
             </svg>
         </div>
         <div class="rest">
             <svg class="ekg-svg" viewBox="0 0 600 120" role="presentation">
-                <path class="ekg-grau" d="M0 70 H600" />
-                <path id="ekg-linie" class="ekg" pathLength="1000" d="M0 70 H120 L140 70 L155 35 L175 105 L192 20 L206 70 H330 L350 70 L365 35 L385 105 L402 20 L416 70 H600" />
-                <circle class="ekg-punkt" r="5" cx="0" cy="0" />
+                <path class="ekg-grey" d="M0 70 H600" />
+                <path id="ekg-line" class="ekg" pathLength="1000" d="M0 70 H120 L140 70 L155 35 L175 105 L192 20 L206 70 H330 L350 70 L365 35 L385 105 L402 20 L416 70 H600" />
+                <circle class="ekg-dot" r="5" cx="0" cy="0" />
             </svg>
-            <div class="intro-titel" {% if lang != 'ar' %}style="letter-spacing:.06em"{% endif %}>
-                {% if lang == 'ar' %}<span style="--i:0">{{ t.titel }}</span>
-                {% else %}{% for zeichen in t.titel %}<span style="--i:{{ loop.index0 }}">{{ zeichen }}</span>{% endfor %}{% endif %}
+            <div class="intro-title" {% if lang != 'ar' %}style="letter-spacing:.06em"{% endif %}>
+                {% if lang == 'ar' %}<span style="--i:0">{{ t.title }}</span>
+                {% else %}{% for char in t.title %}<span style="--i:{{ loop.index0 }}">{{ char }}</span>{% endfor %}{% endif %}
             </div>
             <div class="intro-sub">FHIR · Framingham · DE EN FR AR</div>
         </div>
@@ -31,103 +31,103 @@
 <style>
     #intro { display: none; position: fixed; inset: 0; z-index: 1000; overflow: hidden; cursor: pointer;
              background: radial-gradient(circle at 50% 45%, #14264a 0%, #0f172a 55%, #060b16 100%); }
-    #intro.aktiv { display: block; animation: intro-aus .4s ease 3.1s forwards; }
-    #intro .gitter { position: absolute; inset: 0; opacity: 0; animation: gitter-ein 1s ease forwards;
+    #intro.active { display: block; animation: intro-out .4s ease 3.1s forwards; }
+    #intro .grid { position: absolute; inset: 0; opacity: 0; animation: grid-in 1s ease forwards;
         background-image: linear-gradient(#38bdf8 1px, transparent 1px), linear-gradient(90deg, #38bdf8 1px, transparent 1px);
         background-size: 28px 28px; }
-    #intro .wert { direction: ltr; position: absolute; bottom: -30px; font: 600 .95rem 'Segoe UI', sans-serif; color: #38bdf8; opacity: 0;
-                   white-space: nowrap; animation: wert-steigen 3.4s ease-out both; text-shadow: 0 0 8px #38bdf8; }
-    #intro .buehne { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    #intro .herz-wrap { transform-origin: 50% 50%; animation: durchflug .6s cubic-bezier(.6,0,1,1) 2.9s forwards; }
-    #intro .herz { display: block; overflow: visible; transform-origin: 50% 50%; animation: schlag .5s ease-in-out 1.9s 2; }
-    #intro .herz path { fill: rgba(56,189,248,0); stroke: #38bdf8; stroke-width: 3; stroke-linejoin: round;
+    #intro .rising { direction: ltr; position: absolute; bottom: -30px; font: 600 .95rem 'Segoe UI', sans-serif; color: #38bdf8; opacity: 0;
+                   white-space: nowrap; animation: value-rise 3.4s ease-out both; text-shadow: 0 0 8px #38bdf8; }
+    #intro .stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #intro .heart-wrap { transform-origin: 50% 50%; animation: fly-through .6s cubic-bezier(.6,0,1,1) 2.9s forwards; }
+    #intro .heart { display: block; overflow: visible; transform-origin: 50% 50%; animation: beat .5s ease-in-out 1.9s 2; }
+    #intro .heart path { fill: rgba(56,189,248,0); stroke: #38bdf8; stroke-width: 3; stroke-linejoin: round;
         stroke-dasharray: 1000; stroke-dashoffset: 1000; filter: drop-shadow(0 0 8px #38bdf8);
-        animation: zeichnen 1.1s ease-out .9s forwards, herz-fuellen .6s ease 1.7s forwards; }
-    #intro .rest { display: flex; flex-direction: column; align-items: center; width: 100%; animation: intro-aus .3s ease 2.8s forwards; }
+        animation: draw 1.1s ease-out .9s forwards, heart-fill .6s ease 1.7s forwards; }
+    #intro .rest { display: flex; flex-direction: column; align-items: center; width: 100%; animation: intro-out .3s ease 2.8s forwards; }
     #intro .ekg-svg { width: min(560px, 92vw); height: auto; overflow: visible; margin-top: 8px; }
-    #intro .ekg-grau { fill: none; stroke: #1e3a5f; stroke-width: 1.5; }
+    #intro .ekg-grey { fill: none; stroke: #1e3a5f; stroke-width: 1.5; }
     #intro .ekg { fill: none; stroke: #38bdf8; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
         stroke-dasharray: 1000; stroke-dashoffset: 1000; filter: drop-shadow(0 0 6px #38bdf8);
-        animation: zeichnen 1.5s linear .1s forwards; }
-    #intro .ekg-punkt { display: none; fill: #fff; filter: drop-shadow(0 0 10px #38bdf8) drop-shadow(0 0 4px #fff); opacity: 0; }
+        animation: draw 1.5s linear .1s forwards; }
+    #intro .ekg-dot { display: none; fill: #fff; filter: drop-shadow(0 0 10px #38bdf8) drop-shadow(0 0 4px #fff); opacity: 0; }
     @supports (offset-path: path("M0 0")) {
-        #intro .ekg-punkt { display: block; offset-path: path("M0 70 H120 L140 70 L155 35 L175 105 L192 20 L206 70 H330 L350 70 L365 35 L385 105 L402 20 L416 70 H600");
-            animation: punkt-lauf 1.5s linear .1s forwards; }
+        #intro .ekg-dot { display: block; offset-path: path("M0 70 H120 L140 70 L155 35 L175 105 L192 20 L206 70 H330 L350 70 L365 35 L385 105 L402 20 L416 70 H600");
+            animation: dot-run 1.5s linear .1s forwards; }
     }
-    #intro .intro-titel { margin-top: 10px; font-size: clamp(1.8rem, 7vw, 2.6rem); font-weight: 700; color: #e0f2fe;
+    #intro .intro-title { margin-top: 10px; font-size: clamp(1.8rem, 7vw, 2.6rem); font-weight: 700; color: #e0f2fe;
         white-space: pre; text-shadow: 0 0 18px rgba(56,189,248,.7); }
-    #intro .intro-titel span { display: inline-block; opacity: 0; transform: translateY(16px);
-        animation: buchstabe .5s ease calc(1.5s + var(--i) * .06s) forwards; }
-    #intro .intro-sub { margin-top: 6px; font-size: .8rem; letter-spacing: .18em; color: #7dd3fc; opacity: 0; animation: intro-ein .6s ease 2.2s forwards; }
-    #hauptinhalt.einblenden { animation: intro-ein .6s ease 3.0s both; }
-    @keyframes gitter-ein { to { opacity: .07; } }
-    @keyframes zeichnen { to { stroke-dashoffset: 0; } }
-    @keyframes herz-fuellen { to { fill: rgba(56,189,248,.22); } }
-    @keyframes punkt-lauf { 0% { offset-distance: 0%; opacity: 1; } 92% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
-    @keyframes schlag { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.22); } 55% { transform: scale(.97); } }
-    @keyframes durchflug { to { transform: scale(70); } }
-    @keyframes buchstabe { to { opacity: 1; transform: none; } }
-    @keyframes wert-steigen { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .55; } 100% { transform: translateY(-105vh); opacity: 0; } }
-    @keyframes intro-ein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-    @keyframes intro-aus { to { opacity: 0; visibility: hidden; } }
-    @media (prefers-reduced-motion: reduce) { #intro, #intro.aktiv { display: none; } #hauptinhalt.einblenden { animation: none; } }
+    #intro .intro-title span { display: inline-block; opacity: 0; transform: translateY(16px);
+        animation: letter .5s ease calc(1.5s + var(--i) * .06s) forwards; }
+    #intro .intro-sub { margin-top: 6px; font-size: .8rem; letter-spacing: .18em; color: #7dd3fc; opacity: 0; animation: intro-in .6s ease 2.2s forwards; }
+    #main-content.fade-in { animation: intro-in .6s ease 3.0s both; }
+    @keyframes grid-in { to { opacity: .07; } }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes heart-fill { to { fill: rgba(56,189,248,.22); } }
+    @keyframes dot-run { 0% { offset-distance: 0%; opacity: 1; } 92% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+    @keyframes beat { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.22); } 55% { transform: scale(.97); } }
+    @keyframes fly-through { to { transform: scale(70); } }
+    @keyframes letter { to { opacity: 1; transform: none; } }
+    @keyframes value-rise { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .55; } 100% { transform: translateY(-105vh); opacity: 0; } }
+    @keyframes intro-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes intro-out { to { opacity: 0; visibility: hidden; } }
+    @media (prefers-reduced-motion: reduce) { #intro, #intro.active { display: none; } #main-content.fade-in { animation: none; } }
 </style>
 <script>
 (function () {
     var intro = document.getElementById('intro');
-    var gesehen = false;
-    try { gesehen = sessionStorage.getItem('medilink-intro') === '1'; } catch (e) {}
-    var reduziert = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (gesehen || reduziert) { intro.remove(); return; }
+    var seen = false;
+    try { seen = sessionStorage.getItem('medilink-intro') === '1'; } catch (e) {}
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (seen || reduced) { intro.remove(); return; }
     try { sessionStorage.setItem('medilink-intro', '1'); } catch (e) {}
-    intro.classList.add('aktiv');
+    intro.classList.add('active');
     document.addEventListener('DOMContentLoaded', function () {
-        document.getElementById('hauptinhalt').classList.add('einblenden');
+        document.getElementById('main-content').classList.add('fade-in');
     });
-    function weg() { intro.remove(); }
+    function dismiss() { intro.remove(); }
     intro.addEventListener('click', function () {      // Klick = ueberspringen
-        document.getElementById('hauptinhalt').classList.remove('einblenden');
-        weg();
+        document.getElementById('main-content').classList.remove('fade-in');
+        dismiss();
     });
-    setTimeout(weg, 3700);
+    setTimeout(dismiss, 3700);
 })();
 </script>
 
-<div id="hauptinhalt">
-<h1>{{ t.titel }}</h1>
-<h2>{{ t.patienten }}</h2>
+<div id="main-content">
+<h1>{{ t.title }}</h1>
+<h2>{{ t.patients }}</h2>
 <p>
-    <a href="/neu?lang={{ lang }}">{{ t.neuer_patient_link }}</a>
+    <a href="/new?lang={{ lang }}">{{ t.new_patient_link }}</a>
     &nbsp;|&nbsp;
-    <a href="/risiko?lang={{ lang }}">{{ t.risiko_link }}</a>
+    <a href="/risk?lang={{ lang }}">{{ t.risk_link }}</a>
     &nbsp;|&nbsp;
-    <a href="/statistik?lang={{ lang }}">{{ t.statistik_link }}</a>
+    <a href="/statistics?lang={{ lang }}">{{ t.statistics_link }}</a>
 </p>
-{% if fremde %}<p class="hinweis">{{ t.fremde_hinweis }}</p>{% endif %}
+{% if others %}<p class="hint">{{ t.others_hint }}</p>{% endif %}
 
-{% for patient_id, patient in patienten.items() %}
+{% for patient_id, patient in patients.items() %}
 <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #334155; border-radius: 6px;">
     <strong>{{ patient.name }}</strong>
-    {% if patient.risiko %}
-    <span style="color:#fbbf24;"> | {{ t.risiko_label }}: {{ patient.risiko[0] }}% ({{ patient.risiko[1] }})</span>
+    {% if patient.risk %}
+    <span style="color:#fbbf24;"> | {{ t.risk_label }}: {{ patient.risk[0] }}% ({{ patient.risk[1] }})</span>
     {% endif %}
-{% if patient.darf %}
-    <a href="/verlauf/{{ patient_id }}?lang={{ lang }}" style="color:#38bdf8;">{{ t.verlauf_link }}</a>
+{% if patient.can_view %}
+    <a href="/history/{{ patient_id }}?lang={{ lang }}" style="color:#38bdf8;">{{ t.history_link }}</a>
 
-    <form action="/loeschen/{{ patient_id }}" method="POST"
+    <form action="/delete/{{ patient_id }}" method="POST"
           style="display:inline; float:inline-end;"
-          onsubmit='return confirm({{ t.loeschen_frage|tojson }});'>
+          onsubmit='return confirm({{ t.delete_confirm|tojson }});'>
         <input type="hidden" name="lang" value="{{ lang }}">
         <button type="submit"
                 style="background:none; border:none; color:#f87171; cursor:pointer; font-size:inherit; padding:0; margin:0; text-decoration:underline;">
-            {{ t.loeschen }}
+            {{ t.delete }}
         </button>
     </form>
 
 {% endif %}
     <ul style="text-align:start; margin-top:5px;">
-        {% for diagnose in patient.diagnosen %}
-        <li>{{ diagnose }}</li>
+        {% for diagnosis in patient.diagnoses %}
+        <li>{{ diagnosis }}</li>
         {% endfor %}
     </ul>
 </div>

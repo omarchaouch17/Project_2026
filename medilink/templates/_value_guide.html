@@ -1,0 +1,71 @@
+{# Visual explanation of the measured values: scale with zones, example marker and a live marker for the visitor's own value #}
+{% set scales = [
+  {"field": "cholesterol", "min": 100, "max": 400, "example": 200, "title": t.info_chol_title, "text": t.info_chol_text,
+   "zones": [(200, "z_good", "good"), (240, "z_borderline", "medium"), (400, "z_high", "high")]},
+  {"field": "hdl", "min": 20, "max": 100, "example": 50, "title": t.info_hdl_title, "text": t.info_hdl_text,
+   "zones": [(40, "z_low", "high"), (60, "z_normal", "medium"), (100, "z_good", "good")]},
+  {"field": "blood_pressure", "min": 80, "max": 220, "example": 120, "title": t.info_bp_title, "text": t.info_bp_text,
+   "zones": [(120, "z_good", "good"), (140, "z_borderline", "medium"), (220, "z_high", "high")]},
+] %}
+<details class="value-guide" open>
+<summary>{{ t.info_title }}</summary>
+<p class="value-intro">{{ t.info_intro }}</p>
+{% for s in scales %}
+<div class="scale" data-field="{{ s.field }}" data-min="{{ s.min }}" data-max="{{ s.max }}">
+    <h3>{{ s.title }}</h3>
+    <div class="bar" dir="ltr">
+        {% set ns = namespace(before=s.min) %}
+        {% for upper, key, css_class in s.zones %}
+        <div class="zone zone-{{ css_class }}" style="width: {{ ((upper - ns.before) / (s.max - s.min) * 100)|round(2) }}%;">
+            <span>{{ t[key] }}</span><small>{{ ns.before }}–{{ upper }}</small>
+        </div>
+        {% set ns.before = upper %}
+        {% endfor %}
+        <div class="marker marker-example" style="left: {{ ((s.example - s.min) / (s.max - s.min) * 100)|round(2) }}%;"><b>{{ t.info_example }}<br>{{ s.example }}</b></div>
+        <div class="marker marker-yours" hidden><b>{{ t.info_yours }}<br><span class="yours-number"></span></b></div>
+    </div>
+    <p>{{ s.text }}</p>
+</div>
+{% endfor %}
+<p class="value-intro">{{ t.info_disclaimer }}</p>
+</details>
+<style>
+    .value-guide { border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; margin: 14px 0; text-align: start; }
+    .value-guide summary { cursor: pointer; color: #38bdf8; font-weight: bold; }
+    .value-intro { font-size: .85em; color: #94a3b8; }
+    .scale { margin: 26px 0 14px; }
+    .scale h3 { margin: 0 0 44px; font-size: 1em; color: #e2e8f0; }
+    .bar { position: relative; display: flex; height: 34px; border-radius: 6px; margin-bottom: 52px; }
+    .zone { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .72em; line-height: 1.15; color: #0f172a; overflow: hidden; text-align: center; }
+    .zone:first-of-type { border-radius: 6px 0 0 6px; } .zone:last-of-type { border-radius: 0 6px 6px 0; }
+    .zone small { opacity: .75; }
+    .zone-good { background: #34d399; } .zone-medium { background: #fbbf24; } .zone-high { background: #f87171; }
+    .marker { position: absolute; top: -12px; width: 0; height: 46px; border-inline-start: 2px solid; transform: translateX(-1px); z-index: 2; }
+    .marker b { position: absolute; bottom: 100%; left: 0; transform: translateX(-50%); white-space: nowrap; font-size: .72em; line-height: 1.2; text-align: center; padding: 1px 6px; border-radius: 4px; margin-bottom: 2px; }
+    .marker-example { border-color: #94a3b8; top: 0; height: 46px; }
+    .marker-example b { bottom: auto; top: 100%; margin: 2px 0 0; } .marker-example b { background: #475569; color: #f1f5f9; }
+    .marker-yours { border-color: #38bdf8; } .marker-yours b { background: #0284c7; color: #fff; }
+    .marker-yours { z-index: 3; }
+</style>
+<script>
+(function () {
+    function setup(scale) {
+        var field = document.querySelector('#risk-form [name="' + scale.dataset.field + '"]');
+        var marker = scale.querySelector('.marker-yours');
+        if (!field) { return; }
+        function update() {
+            var value = parseFloat(String(field.value).replace(',', '.'));
+            var min = parseFloat(scale.dataset.min), max = parseFloat(scale.dataset.max);
+            if (isNaN(value)) { marker.hidden = true; return; }
+            var percent = Math.max(0, Math.min(100, (value - min) / (max - min) * 100));
+            marker.style.left = percent + '%';
+            marker.querySelector('.yours-number').textContent = value;
+            marker.hidden = false;
+        }
+        field.addEventListener('input', update);
+        update();
+    }
+    function start() { document.querySelectorAll('.scale').forEach(setup); }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start); } else { start(); }
+})();
+</script>

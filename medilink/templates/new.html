@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ t.new_title }}</h1>
+{% if errors %}<div class="error-box" role="alert">{{ t.error_title }}</div>{% endif %}
+<form action="/add" method="POST" novalidate>
+    <input type="hidden" name="lang" value="{{ lang }}">
+
+    <div class="field">
+        <label for="name">{{ t.new_name }}</label>
+        <input type="text" id="name" name="name" maxlength="60" value="{{ values.get('name', '') }}"
+               {% if errors.get('name') %}class="invalid"{% endif %}>
+        <div class="error" role="alert">{{ errors.get('name', '') }}</div>
+    </div>
+
+    <div class="field">
+        <label for="diagnosis">{{ t.new_diagnosis }}</label>
+        <select id="diagnosis" name="diagnosis" {% if errors.get('diagnosis') %}class="invalid"{% endif %}>
+            <option value="" disabled {% if not values.get('diagnosis_choice') %}selected{% endif %}>{{ t.choose }}</option>
+            {% for d in diagnoses %}
+            <option value="{{ d }}" {% if values.get('diagnosis_choice') == d %}selected{% endif %}>{{ diagnosis_name(d, lang) }}</option>
+            {% endfor %}
+            <option value="{{ OTHER }}" {% if values.get('diagnosis_choice') == OTHER %}selected{% endif %}>{{ t.other }}</option>
+        </select>
+        <div class="error" role="alert">{{ errors.get('diagnosis', '') }}</div>
+    </div>
+
+    <div class="field" id="free-box">
+        <label for="diagnosis_free">{{ t.free_label }}</label>
+        <input type="text" id="diagnosis_free" name="diagnosis_free" maxlength="80"
+               value="{{ values.get('diagnosis_free', '') }}" {% if errors.get('diagnosis_free') %}class="invalid"{% endif %}>
+        <div class="error" role="alert">{{ errors.get('diagnosis_free', '') }}</div>
+    </div>
+
+    <div class="field">
+        <label for="category">{{ t.new_category }}</label>
+        <select id="category" name="category" {% if errors.get('category') %}class="invalid"{% endif %}>
+            <option value="" disabled {% if not values.get('category') %}selected{% endif %}>{{ t.choose }}</option>
+            {% for k in categories %}
+            <option value="{{ k }}" {% if values.get('category') == k %}selected{% endif %}>{{ category_name(k, lang) }}</option>
+            {% endfor %}
+        </select>
+        <div class="error" role="alert">{{ errors.get('category', '') }}</div>
+    </div>
+
+    <button type="submit">{{ t.save }}</button>
+</form>
+<br>
+<a href="/?lang={{ lang }}">{{ t.back }}</a>
+<script>
+// The free text field only shows when "Other" is chosen (without JavaScript it stays visible).
+(function () {
+    var select = document.getElementById('diagnosis'), box = document.getElementById('free-box');
+    function toggle() { box.style.display = (select.value === {{ OTHER|tojson }}) ? '' : 'none'; }
+    select.addEventListener('change', toggle);
+    toggle();
+})();
+</script>
+{% endblock %}

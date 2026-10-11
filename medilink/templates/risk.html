@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ t.risk_title }}</h1>
+<p style="color:#fbbf24; font-size:0.9em;">{{ t.risk_hint }}</p>
+
+{% if just_saved %}<div class="success-box" role="status">✓ {{ t.saved }}<br>{{ t.next_risk }}</div>{% endif %}
+
+{% if errors %}<div class="error-box" role="alert">{{ t.error_title }}{% if errors.general %}<br>{{ errors.general }}{% endif %}</div>{% endif %}
+
+<p class="hint">{{ t.chat_teaser }}</p>
+
+{% include "_value_guide.html" %}
+
+{% if patients %}
+<form action="/calculate_risk" method="POST" id="risk-form" novalidate>
+    <input type="hidden" name="lang" value="{{ lang }}">
+
+    <div class="field">
+        <label for="patient_id">{{ t.patient }}</label>
+        <select id="patient_id" name="patient_id" {% if errors.get('patient_id') %}class="invalid"{% endif %}>
+            <option value="" disabled {% if not values.get('patient_id') %}selected{% endif %}>{{ t.choose }}</option>
+            {% for pid, label in patients %}
+            <option value="{{ pid }}" {% if values.get('patient_id')|string == pid|string %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <div class="error" id="error-patient_id" role="alert">{{ errors.get('patient_id', '') }}</div>
+    </div>
+
+    <div class="field">
+        <label for="sex">{{ t.sex }}</label>
+        <select id="sex" name="sex" {% if errors.get('sex') %}class="invalid"{% endif %}>
+            <option value="m" {% if values.get('sex') == 'm' %}selected{% endif %}>{{ t.male }}</option>
+            <option value="f" {% if values.get('sex') == 'f' %}selected{% endif %}>{{ t.female }}</option>
+        </select>
+        <div class="error" role="alert">{{ errors.get('sex', '') }}</div>
+    </div>
+
+    {% for field, (label_key, (low, high), whole_only, unit) in fields.items() %}
+    <div class="field">
+        <label for="{{ field }}">{{ t[label_key] }}{% if unit %} ({{ unit }}){% endif %}</label>
+        <input type="number" id="{{ field }}" name="{{ field }}" min="{{ low }}" max="{{ high }}"
+               step="{{ 1 if whole_only else 'any' }}" inputmode="decimal" data-label="{{ t[label_key] }}"
+               value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
+        <small class="hint">{{ t.range }}: <bdi dir="ltr">{{ low }}–{{ high }}{% if unit %} {{ unit }}{% endif %}</bdi></small>
+        <div class="error" id="error-{{ field }}" role="alert">{{ errors.get(field, '') }}</div>
+    </div>
+    {% endfor %}
+
+    <div class="field">
+        <label for="smoking">{{ t.smoking }}</label>
+        <select id="smoking" name="smoking" {% if errors.get('smoking') %}class="invalid"{% endif %}>
+            <option value="" disabled {% if not values.get('smoking') %}selected{% endif %}>{{ t.choose }}</option>
+            <option value="never" {% if values.get('smoking') == 'never' %}selected{% endif %}>{{ t.smoking_never }}</option>
+            <option value="former" {% if values.get('smoking') == 'former' %}selected{% endif %}>{{ t.smoking_former }}</option>
+            <option value="current" {% if values.get('smoking') == 'current' %}selected{% endif %}>{{ t.smoking_current }}</option>
+        </select>
+        <div class="error" id="error-smoking" role="alert">{{ errors.get('smoking', '') }}</div>
+    </div>
+
+    <div class="field" id="cigarettes-box">
+        <label for="cigarettes">{{ t.cigarettes }}</label>
+        <input type="number" id="cigarettes" name="cigarettes" min="1" max="100" step="1" inputmode="numeric"
+               data-label="{{ t.cigarettes }}" value="{{ values.get('cigarettes', '') or '' }}"
+               {% if errors.get('cigarettes') %}class="invalid"{% endif %}>
+        <small class="hint">{{ t.range }}: <bdi dir="ltr">1–100</bdi> · {{ t.cigarettes_hint }}</small>
+        <div class="error" id="error-cigarettes" role="alert">{{ errors.get('cigarettes', '') }}</div>
+    </div>
+
+    <label class="check"><input type="checkbox" name="treated" {% if 'treated' in values %}checked{% endif %}> {{ t.treated }}</label>
+    <br>
+    <button type="submit">{{ t.calculate }}</button>
+</form>
+{% else %}
+<p style="color:#fbbf24;">{{ t.no_patient }}</p>
+<p><a href="/new?lang={{ lang }}">{{ t.new_patient_link }}</a></p>
+{% endif %}
+<br>
+<a href="/?lang={{ lang }}">{{ t.back }}</a>
+
+{% if patients %}
+<script>
+// Instant check in the browser (same rules as on the server, messages in the selected language).
+// The server always checks again - this check is only a convenience.
+(function () {
+    var M = {{ {"required": t.err_required, "number": t.err_number, "range": t.err_range, "hdl": t.err_hdl, "choose": t.err_choose}|tojson }};
+    var form = document.getElementById('risk-form');
+    function fmt(s, o) { return s.replace(/\{(\w+)\}/g, function (_, k) { return o[k]; }); }
+    function show(el, msg) {
+        var box = document.getElementById('error-' + el.id);
+        if (box) { box.textContent = msg; }
+        el.classList.toggle('invalid', msg !== '');
+    }
+    function check(el) {
+        var v = el.value.trim().replace(',', '.'), label = el.dataset.label, msg = '';
+        var lo = Number(el.min), hi = Number(el.max);
+        if (v === '') { msg = fmt(M.required, { label: label }); }
+        else if (!isFinite(Number(v)) || (el.step === '1' && !Number.isInteger(Number(v)))) { msg = fmt(M.number, { label: label }); }
+        else if (Number(v) < lo || Number(v) > hi) { msg = fmt(M.range, { label: label, low: lo, high: hi }); }
+        show(el, msg);
+        return msg === '';
+    }
+    var inputs = form.querySelectorAll('input[type=number]');
+    var smoking = document.getElementById('smoking'), cigBox = document.getElementById('cigarettes-box');
+    function cigActive() { return smoking.value === 'current'; }
+    function cigToggle() { cigBox.style.display = cigActive() ? '' : 'none'; }
+    smoking.addEventListener('change', function () { show(smoking, ''); cigToggle(); });
+    cigToggle();
+    inputs.forEach(function (el) {
+        el.addEventListener('blur', function () { if (el.value !== '') { check(el); } });
+        el.addEventListener('input', function () { show(el, ''); });
+    });
+    form.addEventListener('submit', function (e) {
+        var ok = true;
+        var choice = form.elements['patient_id'];
+        if (choice.value === '') { show(choice, fmt(M.choose, { label: {{ t.patient|tojson }} })); ok = false; }
+        else { show(choice, ''); }
+        if (smoking.value === '') { show(smoking, fmt(M.choose, { label: {{ t.smoking|tojson }} })); ok = false; }
+        inputs.forEach(function (el) {
+            if (el.name === 'cigarettes' && !cigActive()) { return; }     // only relevant for current smokers
+            if (!check(el)) { ok = false; }
+        });
+        var chol = form.elements['cholesterol'], hdl = form.elements['hdl'];
+        if (ok && Number(hdl.value) >= Number(chol.value)) { show(hdl, M.hdl); ok = false; }
+        if (!ok) { e.preventDefault(); }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}
