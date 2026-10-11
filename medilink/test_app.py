@@ -60,6 +60,12 @@ def fake_patients(monkeypatch):
     monkeypatch.setattr(app_module, "get_visible_patients", lambda: [(2, "Anna"), (1, "Demo")])
 
 
+@pytest.fixture(autouse=True)
+def fake_conditions(monkeypatch):
+    """By default the chosen patient has no diagnosis (tests never read the real database)."""
+    monkeypatch.setattr(app_module, "get_conditions", lambda patient_id: [])
+
+
 @pytest.fixture
 def fake_risk(monkeypatch):
     """Merkt sich, zu welchen Patienten ein Score saved wird."""
@@ -1002,3 +1008,30 @@ def test_email_address_as_name_is_rejected(client, fake_db):
                                          "category": "Pulmonology"})
     assert response.status_code == 400 and fake_db == []
     assert "e-mail address" in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("diagnosis", ["Myocardial infarction", "Stroke", "Diabetes mellitus", "Heart failure",
+                                       "Angina pectoris", "Herzinfarkt", "type 2 diabetes"])
+def test_framingham_is_refused_for_known_heart_disease_or_diabetes(client, fake_risk, monkeypatch, diagnosis):
+    monkeypatch.setattr(app_module, "get_conditions", lambda patient_id: [diagnosis])
+    response = post_risk(client)
+    assert response.status_code == 400
+    assert fake_risk == []                       # nothing saved
+    html = response.get_data(as_text=True)
+    assert "Framingham-Score gilt nicht" in html
+    assert "Risiko berechnet" not in html
+
+
+def test_framingham_refusal_is_translated(client, fake_risk, monkeypatch):
+    monkeypatch.setattr(app_module, "get_conditions", lambda patient_id: ["Myocardial infarction"])
+    html = post_risk(client, lang="en").get_data(as_text=True)
+    assert "does not apply to this person (Myocardial infarction)" in html
+    html = post_risk(client, lang="fr").get_data(as_text=True)
+    assert "ne s&#39;applique pas" in html and "Infarctus du myocarde" in html
+
+
+@pytest.mark.parametrize("diagnosis", ["Hypertension", "Asthma", "Migraine", "Depression"])
+def test_framingham_still_works_for_other_diagnoses(client, fake_risk, monkeypatch, diagnosis):
+    monkeypatch.setattr(app_module, "get_conditions", lambda patient_id: [diagnosis])
+    assert post_risk(client).status_code == 200
+    assert fake_risk == [1]

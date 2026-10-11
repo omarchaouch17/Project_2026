@@ -9,10 +9,10 @@ from fhir_db import (
     create_all_tables, add_patient, add_condition, delete_patient,
     save_risk, get_latest_risk, get_all_risks,
     count_visit, get_statistics, get_all_entries,
-    get_patients_with_conditions, get_all_patients
+    get_patients_with_conditions, get_all_patients, get_conditions
 )
 from translations import (
-    texts, translate_diagnosis, category_name, CATEGORIES, DIAGNOSES, OTHER
+    texts, translate_diagnosis, category_name, CATEGORIES, DIAGNOSES, OTHER, excludes_framingham
 )
 from risk import framingham
 from advice import risk_category, get_tips
@@ -198,6 +198,13 @@ def calculate_risk():
     values, errors = validate_risk(request.form, t, get_visible_patients())
     if errors:
         return _risk_page(request.form, errors, 400)
+
+    # Framingham is for people WITHOUT known heart disease/diabetes: otherwise do not calculate or save anything
+    language = current_language()
+    for diagnosis in get_conditions(values["patient_id"]):
+        if excludes_framingham(diagnosis):
+            shown = translate_diagnosis(diagnosis, language)
+            return _risk_page(request.form, {"general": t["err_framingham_excluded"].format(diagnosis=shown)}, 400)
 
     try:
         risk_percent = framingham(

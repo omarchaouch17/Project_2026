@@ -52,6 +52,12 @@ def add_condition(patient_id, code_text, category_text, clinical_status="active"
     )
 
 
+def get_conditions(patient_id):
+    """All stored diagnoses (code_text) of one patient as a list of strings."""
+    rows = db.query("SELECT code_text FROM conditions WHERE patient_id = ?", (patient_id,))
+    return [r[0] for r in rows if r[0]]
+
+
 def print_patients_with_conditions():
     for row in db.query("""
         SELECT patients.name, conditions.code_text, conditions.category_text, conditions.clinical_status

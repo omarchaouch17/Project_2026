@@ -31,6 +31,27 @@ DIAGNOSES = [
     "Asthma", "COPD", "Pneumonia", "Kidney failure", "Migraine", "Depression",
     "Appendicitis", "Colon cancer",
 ]
+# Framingham (ATP III) estimates the risk of a FIRST heart event. It is not meant for people who already have
+# a coronary/atherosclerotic disease or diabetes (CHD risk equivalents: they are high risk anyway), nor for heart failure.
+FRAMINGHAM_EXCLUDED = {"Myocardial infarction", "Stroke", "Diabetes mellitus", "Heart failure"}
+# Free-text diagnoses ("Other") are checked by keyword (lower case, several languages).
+_EXCLUDED_WORDS = (
+    "infarct", "heart attack", "angina", "coronary", "stroke", "diabet", "heart failure", "cardiac failure",
+    "herzinfarkt", "schlaganfall", "angina pectoris", "koronar", "diabetes", "herzinsuffizienz", "khk",
+    "infarctus", "avc", "diabète", "insuffisance cardiaque", "coronarien",
+    "احتشاء", "سكري", "سكتة", "قصور القلب", "ذبحة",
+)
+
+
+def excludes_framingham(diagnosis_text):
+    """True if this stored diagnosis means that the Framingham score does not apply."""
+    text = (diagnosis_text or "").strip()
+    if text in FRAMINGHAM_EXCLUDED:
+        return True
+    text = text.lower()
+    return any(word in text for word in _EXCLUDED_WORDS)
+
+
 OTHER = "__other__"   # value of the option "Other (type it yourself)"
 
 # Rows saved before the switch to English contain the German name -> map them to the English name.
@@ -66,6 +87,7 @@ texts = {
         "err_hdl": "HDL muss kleiner als das Gesamtcholesterin sein.",
         "err_sex": "Bitte ein Geschlecht auswählen.",
         "err_long": "{label}: Maximal {max} Zeichen.",
+        "err_framingham_excluded": "Der Framingham-Score gilt nicht für diese Person ({diagnosis}): Er schätzt das Risiko für ein ERSTES Herzereignis. Bei bekannter Herz-Kreislauf-Erkrankung oder Diabetes gehört sie ohnehin zur Hochrisikogruppe, dann geht es um Behandlung und Nachsorge (Sekundärprävention), nicht um eine Berechnung. Es wurde nichts gespeichert.",
         "err_no_email": "{label}: Bitte keine E-Mail-Adresse und keinen echten Namen eingeben, nur erfundene Namen.",
         "fake_notice": "Bitte nur erfundene Daten eingeben: keine echten Namen, keine E-Mail-Adressen, keine echten Gesundheitsdaten. Dies ist eine Lern- und Demonstrationsanwendung.",
         "choose": "Bitte wählen …",
@@ -169,6 +191,7 @@ texts = {
         "err_hdl": "HDL must be lower than total cholesterol.",
         "err_sex": "Please select a sex.",
         "err_long": "{label}: maximum {max} characters.",
+        "err_framingham_excluded": "The Framingham score does not apply to this person ({diagnosis}): it estimates the risk of a FIRST heart event. With known cardiovascular disease or diabetes the person is already in the high-risk group, so the focus is treatment and follow-up (secondary prevention), not a calculation. Nothing was saved.",
         "err_no_email": "{label}: please do not enter an e-mail address or a real name, use an invented name only.",
         "fake_notice": "Please enter invented data only: no real names, no e-mail addresses, no real health data. This is a learning and demonstration application.",
         "choose": "Please select …",
@@ -272,6 +295,7 @@ texts = {
         "err_hdl": "Le HDL doit être inférieur au cholestérol total.",
         "err_sex": "Veuillez sélectionner un sexe.",
         "err_long": "{label} : {max} caractères maximum.",
+        "err_framingham_excluded": "Le score de Framingham ne s'applique pas à cette personne ({diagnosis}) : il estime le risque d'un PREMIER événement cardiaque. En cas de maladie cardiovasculaire connue ou de diabète, la personne est déjà à haut risque ; on parle alors de traitement et de suivi (prévention secondaire), pas de calcul. Rien n'a été enregistré.",
         "err_no_email": "{label} : merci de ne saisir ni adresse e-mail ni vrai nom, uniquement un nom inventé.",
         "fake_notice": "Merci de saisir uniquement des données inventées : pas de vrais noms, pas d'adresses e-mail, pas de vraies données de santé. Application d'apprentissage et de démonstration.",
         "choose": "Veuillez choisir …",
@@ -375,6 +399,7 @@ texts = {
         "err_hdl": "يجب أن يكون HDL أقل من الكوليسترول الكلي.",
         "err_sex": "يرجى اختيار الجنس.",
         "err_long": "{label}: الحد الأقصى {max} حرفًا.",
+        "err_framingham_excluded": "لا ينطبق مقياس فرامنغهام على هذا الشخص ({diagnosis}): فهو يقدّر خطر حدوث أول حدث قلبي. عند وجود مرض قلبي وعائي معروف أو سكري يكون الشخص أصلاً ضمن الفئة عالية الخطورة، فالمطلوب علاج ومتابعة (وقاية ثانوية) وليس حساباً. لم يتم حفظ أي شيء.",
         "err_no_email": "{label}: يرجى عدم إدخال عنوان بريد إلكتروني أو اسم حقيقي، استخدم اسمًا مخترعًا فقط.",
         "fake_notice": "يرجى إدخال بيانات مخترعة فقط: بلا أسماء حقيقية ولا عناوين بريد إلكتروني ولا بيانات صحية حقيقية. هذا تطبيق للتعلم والعرض.",
         "choose": "يرجى الاختيار …",
