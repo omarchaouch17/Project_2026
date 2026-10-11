@@ -986,3 +986,19 @@ def test_health_route_answers_ok_and_is_not_counted(fake_visits):
     assert fake_visits == []                       # pings from the waiting page are no visitors
     with c.session_transaction() as sess:
         assert "visitor" not in sess
+
+
+# ---------- invented data only ----------
+
+@pytest.mark.parametrize("lang,expected", [
+    ("en", "invented data only"), ("de", "erfundene Daten"),
+    ("fr", "données inventées"), ("ar", "بيانات مخترعة")])
+def test_new_patient_form_asks_for_invented_data(client, lang, expected):
+    assert expected in client.get(f"/new?lang={lang}").get_data(as_text=True)
+
+
+def test_email_address_as_name_is_rejected(client, fake_db):
+    response = client.post("/add", data={"name": "someone@uni-example.de", "diagnosis": "Asthma",
+                                         "category": "Pulmonology"})
+    assert response.status_code == 400 and fake_db == []
+    assert "e-mail address" in response.get_data(as_text=True)

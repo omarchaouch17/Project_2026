@@ -113,6 +113,8 @@ def validate_patient(form, t):
         errors["name"] = t["err_required"].format(label=labels["name"])
     elif len(name) > 60:
         errors["name"] = t["err_long"].format(label=labels["name"], max=60)
+    elif "@" in name:       # people sometimes type their e-mail address: do not store it
+        errors["name"] = t["err_no_email"].format(label=labels["name"])
     values["name"] = name
 
     # Diagnosis: fixed choice or "Other" + free text field

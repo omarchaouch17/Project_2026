@@ -2,6 +2,7 @@
 
 {% block content %}
 <h1>{{ t.new_title }}</h1>
+<p class="hint">{{ t.fake_notice }}</p>
 {% if errors %}<div class="error-box" role="alert">{{ t.error_title }}</div>{% endif %}
 <form action="/add" method="POST" novalidate>
     <input type="hidden" name="lang" value="{{ lang }}">
