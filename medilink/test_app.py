@@ -1,4 +1,4 @@
-"""Tests for the Med4All Flask app. Run with: py -m pytest -v"""
+"""Tests for the Fahemni Flask app. Run with: py -m pytest -v"""
 import re
 
 import pytest
@@ -564,7 +564,7 @@ def test_smoking_line_follows_language(client, fake_risk):
 
 
 def _old_german_database(path):
-    """Build a database exactly like the German version of MediLink (now Med4All) created it."""
+    """Build a database exactly like the German version of MediLink (now Fahemni) created it."""
     import sqlite3
     con = sqlite3.connect(path)
     con.executescript("""
@@ -631,7 +631,7 @@ def test_fresh_database_needs_no_migration(tmp_path, monkeypatch):
 
 def test_home_has_intro_animation_with_title_in_selected_language(client, fake_home):
     html = client.get("/?lang=fr").get_data(as_text=True)
-    assert 'id="intro"' in html and "Med4All" in html
+    assert 'id="intro"' in html and "Fahemni" in html
     assert "prefers-reduced-motion" in html         # respektiert die Systemeinstellung
 
 
@@ -1459,5 +1459,5 @@ def test_typeahead_data_is_in_the_page_in_the_page_language():
 def test_every_language_shows_the_name_and_tagline_on_home(client, fake_home):
     for lang, tagline in (("de", "für alle verständlich"), ("en", "for everyone"), ("fr", "pour tous"), ("ar", "للجميع")):
         html = client.get(f"/?lang={lang}").get_data(as_text=True)
-        assert "<title>Med4All</title>" in html and tagline in html
-        assert "MediLink" not in html and "MédiLien" not in html
+        assert ("<title>فهّمني</title>" if lang == "ar" else "<title>Fahemni</title>") in html and tagline in html
+        assert "MediLink" not in html and "MédiLien" not in html and "Med4All" not in html

@@ -1,5 +1,5 @@
 """units.py - lab values come in different units (Tunisia, Germany, France ...). Everything is converted
-to the units Med4All calculates with (mg/dL, mmHg) BEFORE any range check or calculation.
+to the units Fahemni calculates with (mg/dL, mmHg) BEFORE any range check or calculation.
 
 Factors: value in the chosen unit * factor = value in mg/dL (or mmHg).
 """

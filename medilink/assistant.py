@@ -74,7 +74,7 @@ def sanitize_history(history):
 
 def build_system_prompt(language, result):
     text = (
-        "You are the explainer assistant of the learning web application Med4All (Framingham heart "
+        "You are the explainer assistant of the learning web application Fahemni (Framingham heart "
         f"risk, a student project). Always answer in this language: {LANGUAGE_NAMES.get(language, 'English')}.\n"
         "Task: explain terms (cholesterol, HDL, blood pressure, mmHg, mg/dL, Framingham score, risk "
         "categories) and the result in plain language.\n"

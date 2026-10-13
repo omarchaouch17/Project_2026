@@ -15,7 +15,7 @@ def _build(common, checks, mods):
 
 SCREENING_TEXTS = {
 "de": _build({
-    "unit": "Einheit", "unit_hint": "Wähle bei jedem Laborwert die Einheit, die auf deinem Befund steht. Med4All rechnet sie automatisch um.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
+    "unit": "Einheit", "unit_hint": "Wähle bei jedem Laborwert die Einheit, die auf deinem Befund steht. Fahemni rechnet sie automatisch um.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "Schritt 1: Fragebogen zum Herz-Kreislauf-Risiko",
     "sc_intro": "Zuerst wird geprüft, ob schon ein hohes oder sehr hohes Risiko besteht. Dann braucht es keine Berechnung, sondern zuerst ärztliche Abklärung und Behandlung. Nur wenn nichts davon zutrifft, geht es zum Score weiter. Unbekannte Werte einfach leer lassen.",
     "next_screening": "Jetzt bitte den Fragebogen ausfüllen.",
@@ -57,7 +57,7 @@ SCREENING_TEXTS = {
     "sc_missing_note": "Achtung: Fehlende Werte können ein höheres Risiko verdecken.",
     "sc_continue": "Weiter zum Score",
     "sc_again": "Fragebogen neu ausfüllen",
-    "sc_source": "Ablauf nach dem Pfad INEAS 2022 (Abbildung 5). Med4All rechnet in Schritt 2 mit Framingham/ATP III, der Pfad selbst verwendet Globorisk.",
+    "sc_source": "Ablauf nach dem Pfad INEAS 2022 (Abbildung 5). Fahemni rechnet in Schritt 2 mit Framingham/ATP III, der Pfad selbst verwendet Globorisk.",
     "mod_title": "Zusätzliche Risikofaktoren",
     "mod_note": "Der Score liegt unter 10 %, aber es gibt zusätzliche Risikofaktoren: Einstufung auf mittleres Risiko angehoben.",
 }, [
@@ -73,7 +73,7 @@ SCREENING_TEXTS = {
     "Schwere psychiatrische Erkrankung", "HIV-Behandlung", "Schlafapnoe",
 ]),
 "en": _build({
-    "unit": "Unit", "unit_hint": "For every lab value, choose the unit printed on your report. Med4All converts it automatically.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
+    "unit": "Unit", "unit_hint": "For every lab value, choose the unit printed on your report. Fahemni converts it automatically.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "Step 1: cardiovascular risk questionnaire",
     "sc_intro": "First we check whether there is already a high or very high risk. In that case no calculation is needed: medical assessment and treatment come first. Only if none of this applies do we go on to the score. Leave unknown values empty.",
     "next_screening": "Now please fill in the questionnaire.",
@@ -115,7 +115,7 @@ SCREENING_TEXTS = {
     "sc_missing_note": "Careful: missing values can hide a higher risk.",
     "sc_continue": "Continue to the score",
     "sc_again": "Fill in the questionnaire again",
-    "sc_source": "Flow follows the INEAS 2022 pathway (figure 5). In step 2 Med4All uses Framingham/ATP III, the pathway itself uses Globorisk.",
+    "sc_source": "Flow follows the INEAS 2022 pathway (figure 5). In step 2 Fahemni uses Framingham/ATP III, the pathway itself uses Globorisk.",
     "mod_title": "Additional risk factors",
     "mod_note": "The score is below 10 %, but additional risk factors apply: category raised to medium risk.",
 }, [
@@ -131,7 +131,7 @@ SCREENING_TEXTS = {
     "Major psychiatric disorder", "HIV treatment", "Sleep apnoea",
 ]),
 "fr": _build({
-    "unit": "Unité", "unit_hint": "Pour chaque valeur de laboratoire, choisissez l\'unité imprimée sur votre résultat. Med4All la convertit automatiquement.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
+    "unit": "Unité", "unit_hint": "Pour chaque valeur de laboratoire, choisissez l\'unité imprimée sur votre résultat. Fahemni la convertit automatiquement.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "Étape 1 : questionnaire de risque cardiovasculaire",
     "sc_intro": "On vérifie d'abord s'il existe déjà un risque élevé ou très élevé. Dans ce cas, pas de calcul : l'évaluation médicale et le traitement passent en premier. Si rien de tout cela ne s'applique, on passe au score. Laissez vides les valeurs inconnues.",
     "next_screening": "Veuillez maintenant remplir le questionnaire.",
@@ -173,7 +173,7 @@ SCREENING_TEXTS = {
     "sc_missing_note": "Attention : des valeurs manquantes peuvent cacher un risque plus élevé.",
     "sc_continue": "Continuer vers le score",
     "sc_again": "Remplir à nouveau le questionnaire",
-    "sc_source": "Déroulement selon le parcours INEAS 2022 (figure 5). À l'étape 2, Med4All utilise Framingham/ATP III ; le parcours lui-même utilise Globorisk.",
+    "sc_source": "Déroulement selon le parcours INEAS 2022 (figure 5). À l'étape 2, Fahemni utilise Framingham/ATP III ; le parcours lui-même utilise Globorisk.",
     "mod_title": "Facteurs de risque supplémentaires",
     "mod_note": "Le score est inférieur à 10 %, mais des facteurs de risque supplémentaires existent : catégorie relevée à risque modéré.",
 }, [
@@ -189,7 +189,7 @@ SCREENING_TEXTS = {
     "Trouble psychiatrique majeur", "Traitement d'une infection par le VIH", "Syndrome d'apnées obstructives du sommeil",
 ]),
 "ar": _build({
-    "unit": "الوحدة", "unit_hint": "لكل قيمة مخبرية، اختر الوحدة المكتوبة في نتيجة التحليل. يحوّلها Med4All تلقائياً.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
+    "unit": "الوحدة", "unit_hint": "لكل قيمة مخبرية، اختر الوحدة المكتوبة في نتيجة التحليل. يحوّلها Fahemni تلقائياً.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "الخطوة 1: استبيان خطر القلب والأوعية",
     "sc_intro": "نتحقق أولاً مما إذا كان هناك خطر مرتفع أو مرتفع جداً. في هذه الحالة لا حاجة للحساب: التقييم الطبي والعلاج أولاً. إذا لم ينطبق شيء من ذلك ننتقل إلى المقياس. اترك القيم غير المعروفة فارغة.",
     "next_screening": "يرجى الآن ملء الاستبيان.",
@@ -231,7 +231,7 @@ SCREENING_TEXTS = {
     "sc_missing_note": "انتبه: القيم الناقصة قد تخفي خطراً أعلى.",
     "sc_continue": "المتابعة إلى المقياس",
     "sc_again": "ملء الاستبيان من جديد",
-    "sc_source": "التسلسل وفق مسار INEAS 2022 (الشكل 5). في الخطوة 2 يستخدم Med4All مقياس Framingham/ATP III، بينما يستخدم المسار نفسه Globorisk.",
+    "sc_source": "التسلسل وفق مسار INEAS 2022 (الشكل 5). في الخطوة 2 يستخدم Fahemni مقياس Framingham/ATP III، بينما يستخدم المسار نفسه Globorisk.",
     "mod_title": "عوامل خطر إضافية",
     "mod_note": "المقياس أقل من 10%، لكن توجد عوامل خطر إضافية: رُفع التصنيف إلى خطر متوسط.",
 }, [

@@ -2,7 +2,7 @@
 
 Follows the pathway "Evaluation du risque cardiovasculaire" (INEAS 2022, figure 5):
   step 1  look for conditions that already mean high or very high risk  -> no score needed, treat first
-  step 2  otherwise calculate the score (Med4All uses Framingham / ATP III, the course uses Globorisk)
+  step 2  otherwise calculate the score (Fahemni uses Framingham / ATP III, the course uses Globorisk)
   step 3  if the score is below 10 %: look for risk modifiers (they move "low" to "moderate")
 
 Pure logic, no Flask and no database: easy to test.
