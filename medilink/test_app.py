@@ -1229,3 +1229,16 @@ def test_screening_db_roundtrip(tmp_path, monkeypatch):
     assert fhir_db.get_latest_screening(pid) == ("proceed", [], [])
     fhir_db.save_screening(pid, "very_high", ["cvd_documented", "ckd_severe"], ["sedentary", "hiv"])
     assert fhir_db.get_latest_screening(pid) == ("very_high", ["cvd_documented", "ckd_severe"], ["sedentary", "hiv"])
+
+
+def test_language_switch_on_questionnaire_keeps_the_patient(client):
+    html = client.get("/screening?patient=1&lang=en").get_data(as_text=True)
+    assert 'href="/screening?patient=1&amp;lang=de"' in html or 'href="/screening?patient=1&lang=de"' in html
+    for lang in ("de", "fr", "ar"):
+        response = client.get(f"/screening?patient=1&lang={lang}")
+        assert response.status_code == 200 and 'name="patient_id" value="1"' in response.get_data(as_text=True)
+
+
+def test_language_switch_on_other_pages_still_works(client):
+    html = client.get("/risk?lang=en").get_data(as_text=True)
+    assert 'href="/risk?lang=fr"' in html

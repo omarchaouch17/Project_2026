@@ -150,7 +150,7 @@
     {% if show_languages %}
     <div class="lang-switch">
         {% for code in languages %}
-        <a href="{{ language_path }}?lang={{ code }}" {% if code == lang %}class="active" {% endif %}>{{ code|upper }}</a>{% if not loop.last %} | {% endif %}
+        <a href="{{ language_path }}{{ '&' if '?' in language_path else '?' }}lang={{ code }}" {% if code == lang %}class="active" {% endif %}>{{ code|upper }}</a>{% if not loop.last %} | {% endif %}
         {% endfor %}
     </div>
     {% endif %}

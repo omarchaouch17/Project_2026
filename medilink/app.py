@@ -254,12 +254,14 @@ def calculate_risk():
 
 def _screening_result_page(patient_id, name, level, reasons, modifiers, missing=(), egfr=None, status=200):
     return render_template("screening_result.html", patient_id=patient_id, name=name, level=level,
-                           reasons=reasons, missing=list(missing), egfr=egfr, language_path="/screening"), status
+                           reasons=reasons, missing=list(missing), egfr=egfr, show_languages=False,
+                           language_path="/screening"), status
 
 
 def _screening_page(patient_id, name, values, errors, status=200, just_saved=False):
     return render_template("screening.html", patient_id=patient_id, name=name, values=values, errors=errors,
-                           checks=screening_logic, just_saved=just_saved, language_path="/screening",
+                           checks=screening_logic, just_saved=just_saved,
+                           language_path=f"/screening?patient={patient_id}",
                            patient_arg=patient_id), status
 
 
