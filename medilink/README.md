@@ -75,3 +75,15 @@ Labs use different units (e.g. in Tunisia g/L or mmol/L for cholesterol, µmol/L
 Light theme and 19 px text by default (NHS design system values), buttons at least 48 px high, yellow focus outline,
 home menu as large buttons. Two buttons at the top switch to larger text (23 px) and to the dark theme; the choice is
 remembered in the browser. Colours are CSS variables in `templates/base.html`.
+
+## Medical word lookup (`/glossary`)
+A person types ONE word or abbreviation from a doctor's letter (French, German, English or Arabic, with or without accents)
+and gets the explanation in the page language plus the other three languages. There is no automatic reading of letters or photos.
+- 43 hand-written terms in `medical_terms.py` (cardiology / internal medicine); French and Arabic texts still need review by a native speaker or a doctor.
+- A word that is not in the glossary gets NO explanation ("ask your doctor"); only close spellings of known words are offered.
+- POST only: the typed word never appears in a URL or log and is not stored.
+- Fixed notice on every result: it explains a word, not the situation; no treatment advice; emergency numbers 190 (Tunisia) and 112 (Germany).
+
+### Language and type-ahead
+- The page language is: the person's choice (`?lang=`, remembered in the session cookie) > the browser language (Accept-Language) > English.
+- On `/glossary` the suggestions while typing ("ec" -> ECG, "fibre" -> Fibrillation auriculaire) are computed in the browser from a list embedded in the page, so nothing typed is sent to the server before the button is pressed. Without JavaScript the normal search still works.

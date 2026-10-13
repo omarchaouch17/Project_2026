@@ -1314,3 +1314,143 @@ def test_questionnaire_rejects_unknown_unit_and_out_of_range_in_unit(client, fak
     assert post_screening(client, ldl="3", ldl_unit="bananas").status_code == 400
     html = post_screening(client, lang="en", ldl="20", ldl_unit="mmol").get_data(as_text=True)   # = 773 mg/dL
     assert "mmol/L" in html and fake_screening == []
+
+
+# ---------- medical word lookup (/glossary) ----------
+import medical_glossary
+from medical_terms import TERMS
+
+
+def _lookup(client, word, lang="fr"):
+    return client.post("/glossary", data={"q": word, "lang": lang}).get_data(as_text=True)
+
+
+@pytest.fixture
+def gclient():
+    app.config["TESTING"] = True
+    return app.test_client()
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_glossary_page_in_every_language(gclient, lang):
+    html = gclient.get(f"/glossary?lang={lang}").get_data(as_text=True)
+    assert 'name="q"' in html and "190" in html and "112" in html
+
+
+def test_glossary_finds_known_words_with_and_without_accents(gclient):
+    for word in ("dyspnée", "Dyspnee", "DYSPNÉE", "essoufflement"):
+        assert "sensation d&#39;avoir du mal à respirer" in _lookup(gclient, word)
+
+
+def test_glossary_abbreviations_and_other_languages(gclient):
+    assert "ression dans les vaisseaux" in _lookup(gclient, "HTA")
+    assert "nregistrement de l&#39;activité électrique" in _lookup(gclient, "ECG")
+    assert "pression dans les vaisseaux" in _lookup(gclient, "Hypertonie")
+    assert "الشعور بصعوبة في التنفس" in _lookup(gclient, "ضيق التنفس", lang="ar")
+
+
+def test_glossary_shows_other_languages_but_not_the_current_one_twice(gclient):
+    html = _lookup(gclient, "dyspnée", lang="en")
+    assert "he feeling of having difficulty breathing" in html          # page language
+    assert "Français · Dyspnée" in html and "العربية" in html and "Deutsch" in html
+    assert "English ·" not in html
+
+
+def test_glossary_unknown_word_gets_no_explanation(gclient):
+    html = _lookup(gclient, "xyzabc")
+    assert "Je ne connais pas ce mot" in html
+    assert "sensation" not in html and 'class="card"' not in html
+
+
+def test_glossary_never_invents_for_typos_only_suggests_known_words(gclient):
+    html = _lookup(gclient, "dyspnne")
+    assert "Je ne connais pas ce mot" in html and "Vouliez-vous dire" in html
+    assert 'value="Dyspnée"' in html and "sensation" not in html         # suggestion button, no definition
+
+
+def test_glossary_empty_or_one_letter_query(gclient):
+    assert "au moins 2 lettres" in _lookup(gclient, " ")
+    assert "au moins 2 lettres" in _lookup(gclient, "a")
+
+
+def test_glossary_query_is_escaped_and_limited(gclient):
+    html = _lookup(gclient, "<script>alert(1)</script>")
+    assert "<script>alert(1)</script>" not in html
+    long_html = _lookup(gclient, "x" * 5000)
+    assert "x" * 81 not in long_html
+
+
+def test_glossary_search_is_post_only_no_query_in_url(gclient):
+    response = gclient.get("/glossary?q=diabete&lang=fr")
+    assert response.status_code == 200 and "Diabète sucré" not in response.get_data(as_text=True)
+
+
+def test_glossary_home_menu_links_to_it(gclient):
+    assert 'href="/glossary?lang=fr"' in gclient.get("/?lang=fr").get_data(as_text=True)
+
+
+def test_every_name_finds_its_own_term_first_or_among_results():
+    for key in TERMS:
+        for name in medical_glossary.names_of(key):
+            found = medical_glossary.search(name)
+            assert key in found, (key, name, found)
+
+
+def test_exact_titles_in_every_language_rank_their_term_first():
+    for key in TERMS:
+        for lang in ("de", "en", "fr", "ar"):
+            title = medical_glossary.title_of(key, lang)
+            assert medical_glossary.search(title)[0] == key or title.lower().startswith("cholest"), (key, lang, title)
+
+
+def test_no_name_belongs_to_two_terms_exactly():
+    owner = {}
+    for key in TERMS:
+        for name in medical_glossary.names_of(key):
+            assert owner.setdefault(name, key) == key, (name, key, owner[name])
+
+
+def test_all_terms_have_all_languages_and_french_names():
+    for key, entry in TERMS.items():
+        assert entry["fr_aliases"] and entry["de_aliases"], key
+        for lang in ("de", "en", "fr", "ar"):
+            assert entry[lang].strip(), (key, lang)
+
+
+# ---------- language: choice > remembered choice > browser language > English ----------
+def _lang_of(html):
+    import re
+    return re.search(r'<html lang="(\w+)"', html).group(1)
+
+
+@pytest.mark.parametrize("header,expected", [
+    ("fr-TN,fr;q=0.9,ar;q=0.8", "fr"), ("de-DE,de;q=0.9,en;q=0.5", "de"), ("ar-TN,ar;q=0.9", "ar"),
+    ("en-US,en;q=0.9", "en"), ("ja,zh;q=0.9", "en"), ("", "en"),
+])
+def test_language_follows_the_browser_when_nothing_was_chosen(header, expected):
+    app.config["TESTING"] = True
+    client = app.test_client()
+    html = client.get("/glossary", headers={"Accept-Language": header}).get_data(as_text=True)
+    assert _lang_of(html) == expected
+
+
+def test_chosen_language_beats_browser_and_is_remembered():
+    app.config["TESTING"] = True
+    client = app.test_client()
+    assert _lang_of(client.get("/glossary?lang=de", headers={"Accept-Language": "fr"}).get_data(as_text=True)) == "de"
+    assert _lang_of(client.get("/glossary", headers={"Accept-Language": "fr"}).get_data(as_text=True)) == "de"   # remembered
+    assert _lang_of(client.get("/glossary?lang=ar").get_data(as_text=True)) == "ar"
+
+
+def test_unknown_lang_parameter_falls_back_to_browser_language():
+    app.config["TESTING"] = True
+    client = app.test_client()
+    html = client.get("/glossary?lang=xx", headers={"Accept-Language": "fr"}).get_data(as_text=True)
+    assert _lang_of(html) == "fr"
+
+
+def test_typeahead_data_is_in_the_page_in_the_page_language():
+    app.config["TESTING"] = True
+    html = app.test_client().get("/glossary?lang=fr").get_data(as_text=True)
+    assert 'id="g-data"' in html and "Fibrillation auriculaire" in html and "ecg" in html
+    assert "Atrial fibrillation" not in html.split('id="g-data"')[1].split("</script>")[0]

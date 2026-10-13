@@ -14,6 +14,7 @@ from fhir_db import (
 )
 import screening as screening_logic
 import units
+import medical_glossary
 from translations import (
     texts, translate_diagnosis, category_name, CATEGORIES, DIAGNOSES, OTHER, excludes_framingham
 )
@@ -42,9 +43,17 @@ create_all_tables()
 
 
 def current_language():
-    """Language from ?lang=... (GET) or the hidden form field (POST); unknown -> English."""
-    language = request.values.get("lang", DEFAULT_LANGUAGE)
-    return language if language in texts else DEFAULT_LANGUAGE
+    """Language: ?lang=... / hidden form field (the person's choice, remembered in the session cookie),
+    otherwise the remembered choice, otherwise the browser's language (Accept-Language), otherwise English."""
+    chosen = request.values.get("lang")
+    if chosen in texts:
+        if session.get("lang") != chosen:
+            session["lang"] = chosen
+        return chosen
+    remembered = session.get("lang")
+    if remembered in texts:
+        return remembered
+    return request.accept_languages.best_match(LANGUAGES) or DEFAULT_LANGUAGE
 
 
 def is_admin():
@@ -118,6 +127,37 @@ def home():
         grouped[patient_id]["diagnoses"].append(shown)
 
     return render_template("home.html", patients=grouped, others=others and not is_admin())
+
+
+
+LANGUAGE_NAMES = {"de": "Deutsch", "en": "English", "fr": "Français", "ar": "العربية"}
+
+
+@app.route("/glossary", methods=["GET", "POST"])
+def glossary_page():
+    """Look up one medical word typed by the person. POST only (the word never appears in a URL or log);
+    unknown words get NO explanation - only close spellings of known words are offered."""
+    language = current_language()
+    query, results, suggestions, empty = "", [], [], False
+    searched = request.method == "POST"
+    if searched:
+        query = medical_glossary.clean_query(request.form.get("q", ""))
+        keys = medical_glossary.search(query)
+        if len(medical_glossary.normalize(query)) < medical_glossary.MIN_QUERY:
+            empty = True
+        for key in keys:
+            results.append({
+                "title": medical_glossary.title_of(key, language),
+                "text": medical_glossary.text_of(key, language),
+                "others": [(code, LANGUAGE_NAMES[code], medical_glossary.title_of(key, code),
+                            medical_glossary.text_of(key, code))
+                           for code in ("fr", "ar", "de", "en") if code != language],
+            })
+        if not keys and not empty:
+            suggestions = medical_glossary.suggest(query, language)
+    return render_template("glossary.html", query=query, results=results, suggestions=suggestions,
+                           searched=searched, empty=empty,
+                           suggest_data=medical_glossary.suggest_data(language)), 200
 
 
 @app.route("/health")

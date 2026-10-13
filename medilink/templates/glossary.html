@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ t.gl_title }}</h1>
+<p>{{ t.gl_intro }}</p>
+
+<form method="POST" action="/glossary" autocomplete="off">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <div class="field">
+        <label for="q">{{ t.gl_label }}</label>
+        <input id="q" name="q" type="text" value="{{ query }}" maxlength="80" autocapitalize="off" spellcheck="false" required
+               role="combobox" aria-autocomplete="list" aria-controls="hints" aria-expanded="false">
+        <div id="hints" class="hints" role="listbox" aria-label="{{ t.gl_suggest }}"></div>
+    </div>
+    <button type="submit">{{ t.gl_button }}</button>
+</form>
+
+<style>
+    .hints { display: none; border: 2px solid var(--border); border-top: 0; background: var(--card); border-radius: 0 0 6px 6px; }
+    .hints.open { display: block; }
+    .hints button { display: block; width: 100%; text-align: start; min-height: 52px; border: 0; border-radius: 0; background: var(--card);
+        color: var(--text); font-weight: 400; border-bottom: 1px solid var(--soft-border); }
+    .hints button:last-child { border-bottom: 0; }
+    .hints button b { color: var(--accent); }
+    .hints button:hover, .hints button:focus-visible { background: var(--soft); filter: none; }
+</style>
+<script id="g-data" type="application/json">{{ suggest_data|tojson }}</script>
+<script>
+(function () {
+    var data = JSON.parse(document.getElementById('g-data').textContent);
+    var input = document.getElementById('q'), box = document.getElementById('hints'), form = input.form;
+    function norm(s) {
+        return s.toLowerCase().replace(/œ/g, 'oe').replace(/ß/g, 'ss').replace(/æ/g, 'ae').normalize('NFKD')
+            .replace(/[\u0300-\u036f\u064b-\u065f\u0670]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ـ/g, '')
+            .replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+    }
+    function close() { box.className = 'hints'; box.textContent = ''; input.setAttribute('aria-expanded', 'false'); }
+    function lev(a, b) {                   // edit distance (small strings only)
+        var d = [], i, j;
+        for (i = 0; i <= a.length; i++) { d[i] = [i]; }
+        for (j = 1; j <= b.length; j++) { d[0][j] = j; }
+        for (i = 1; i <= a.length; i++) {
+            for (j = 1; j <= b.length; j++) {
+                d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+            }
+        }
+        return d[a.length][b.length];
+    }
+    function closeStart(q, word) {         // typo in the first letters: "fibre" ~ "fibri(llation)"
+        for (var n = q.length - 1; n <= q.length + 1; n++) {
+            if (n > 0 && lev(q, word.slice(0, n)) <= 1) { return true; }
+        }
+        return false;
+    }
+    function rank(q) {                     // 0 = a name starts with it, 1 = a word of a name starts with it, 2 = typo in the start
+        var out = [];
+        data.forEach(function (item) {
+            var best = 9;
+            item.n.forEach(function (name) {
+                if (name.indexOf(q) === 0) { best = Math.min(best, 0); }
+                else if (name.split(' ').some(function (w) { return w.indexOf(q) === 0; })) { best = Math.min(best, 1); }
+            });
+            if (best === 9 && q.length >= 4) {
+                item.n.forEach(function (name) {
+                    if (name.split(' ').some(function (w) { return w.length > 3 && closeStart(q, w); })) { best = 2; }
+                });
+            }
+            if (best < 9) { out.push({ t: item.t, r: best }); }
+        });
+        out.sort(function (a, b) { return a.r - b.r; });
+        return out.slice(0, 6);
+    }
+    input.addEventListener('input', function () {
+        var q = norm(input.value);
+        close();
+        if (q.length < 2) { return; }
+        var found = rank(q);
+        if (!found.length) { return; }
+        found.forEach(function (f) {
+            var b = document.createElement('button');
+            b.type = 'button'; b.setAttribute('role', 'option'); b.textContent = f.t;     // textContent: no HTML
+            b.addEventListener('click', function () { input.value = f.t; form.submit(); });
+            box.appendChild(b);
+        });
+        box.className = 'hints open'; input.setAttribute('aria-expanded', 'true');
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
+})();
+</script>
+
+{% if searched %}
+<div aria-live="polite">
+    {% if empty %}
+        <div class="error-box">{{ t.gl_empty }}</div>
+    {% elif results %}
+        {% for r in results %}
+        <section class="card">
+            <h2 style="text-align:start; margin-top:0;">{{ r.title }}</h2>
+            <p style="margin:0;">{{ r.text }}</p>
+            <details style="margin-top:12px;">
+                <summary style="cursor:pointer; padding:8px 0; font-weight:700;">{{ t.gl_other }}</summary>
+                {% for code, name, title, text in r.others %}
+                <div lang="{{ code }}" dir="{{ 'rtl' if code == 'ar' else 'ltr' }}" style="text-align:start; margin:10px 0;">
+                    <strong>{{ name }} · {{ title }}</strong><br>{{ text }}
+                </div>
+                {% endfor %}
+            </details>
+        </section>
+        {% endfor %}
+    {% else %}
+        <div class="error-box">{{ t.gl_none }}</div>
+        {% if suggestions %}
+        <p class="center" style="text-align:center;">{{ t.gl_suggest }}</p>
+        <form method="POST" action="/glossary" class="center" style="text-align:center;">
+            <input type="hidden" name="lang" value="{{ lang }}">
+            {% for key, title in suggestions %}
+            <button type="submit" name="q" value="{{ title }}" style="margin:4px;">{{ title }}</button>
+            {% endfor %}
+        </form>
+        {% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="emergency" role="note">{{ t.gl_disclaimer }}</div>
+
+<p class="center" style="text-align:center;"><a href="/?lang={{ lang }}">{{ t.back }}</a></p>
+{% endblock %}
