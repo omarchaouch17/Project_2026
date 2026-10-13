@@ -546,3 +546,8 @@ for _lang, _extra in UI_TEXTS.items():
 from start_texts import START_TEXTS  # noqa: E402
 for _lang, _extra in START_TEXTS.items():
     texts[_lang].update(_extra)
+
+# Step-by-step risk form
+from wizard_texts import WIZARD_TEXTS  # noqa: E402
+for _lang, _extra in WIZARD_TEXTS.items():
+    texts[_lang].update(_extra)

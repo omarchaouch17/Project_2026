@@ -14,6 +14,30 @@
 
 {% include "_value_guide.html" %}
 
+<style>
+    /* Step-by-step form (only when JavaScript runs; without it the whole form stays visible) */
+    .wz-off { display: none !important; }
+    #wz-head { margin: 0 0 14px; }
+    #wz-head .wz-count { color: var(--muted); font-size: .9rem; margin: 0 0 6px; }
+    #wz-head .wz-bar { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+    #wz-head .wz-bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .35s ease; }
+    #wz-head h2 { margin: 0 0 4px; color: var(--accent); font-size: 1.5rem; }
+    #wz-head p.wz-help { margin: 0; color: var(--muted); }
+    .seg { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .seg button { flex: 1 1 120px; min-height: 52px; padding: 8px 14px; border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer;
+                  border: 2px solid var(--border); background: var(--field-bg); color: var(--field-text); }
+    .seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--btn-text); }
+    .inline-unit .seg { margin-top: 0; flex: 0 0 auto; flex-wrap: nowrap; }
+    .inline-unit .seg button { flex: 0 0 auto; min-width: 66px; padding: 8px 8px; }
+    .inline-unit input { min-width: 90px; }
+    #wz-nav { display: flex; gap: 12px; margin-top: 18px; }
+    #wz-nav button { flex: 1; cursor: pointer; border: 0; font: inherit; }
+    #wz-nav button.menu-btn.secondary { border: 2px solid var(--accent); }
+    #wz-review ul { list-style: none; margin: 0; padding: 0; }
+    #wz-review li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--soft-border); }
+    #wz-review li button { background: none; border: 0; color: var(--link); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; min-height: 44px; padding: 0 8px; }
+    @media (prefers-reduced-motion: reduce) { #wz-head .wz-bar i { transition: none; } }
+</style>
 {% if patients %}
 <form action="/calculate_risk" method="POST" id="risk-form" novalidate>
     <input type="hidden" name="lang" value="{{ lang }}">
@@ -127,6 +151,158 @@
         el.addEventListener('blur', function () { if (el.value !== '') { check(el); } });
         el.addEventListener('input', function () { show(el, ''); });
     });
+
+    // ---- Step by step: one question at a time (the form above stays complete without JavaScript) ----
+    (function () {
+        var W = {{ {"step": t.wz_step, "review": t.wz_review_label, "t": [t.wz_t1, t.wz_t2, t.wz_t3, t.wz_t4], "h": [t.wz_h1, t.wz_h2, t.wz_h3, t.wz_h4],
+                    "back": t.wz_back, "next": t.wz_next, "reviewBtn": t.wz_review_btn, "reviewTitle": t.wz_review_title,
+                    "reviewHint": t.wz_review_hint, "edit": t.wz_edit}|tojson }};
+        function fieldOf(id) {
+            if (id === 'treated') { return form.querySelector('label.check'); }
+            if (id === 'cigarettes') { return cigBox; }
+            return document.getElementById(id).closest('.field');
+        }
+        var steps = [['patient_id', 'sex', 'age'], ['cholesterol', 'hdl'], ['blood_pressure', 'treated'], ['smoking', 'cigarettes']]
+            .map(function (ids) { return ids.map(fieldOf); });
+        var last = steps.length, cur = 0;
+        var submitBtn = form.querySelector('button[type=submit]');
+        var breaks = form.querySelectorAll(':scope > br');
+
+        // header: step counter, progress bar, title, help line
+        var head = document.createElement('div');
+        head.id = 'wz-head'; head.setAttribute('aria-live', 'polite');
+        head.innerHTML = '<p class="wz-count"></p><div class="wz-bar"><i></i></div><h2></h2><p class="wz-help"></p>';
+        form.insertBefore(head, form.querySelector('input[name=lang]').nextSibling);
+        var review = document.createElement('div');
+        review.id = 'wz-review'; review.className = 'wz-off';
+        form.insertBefore(review, submitBtn);
+        var nav = document.createElement('div');
+        nav.id = 'wz-nav';
+        nav.innerHTML = '<button type="button" class="menu-btn secondary" id="wz-back"></button><button type="button" class="menu-btn" id="wz-next"></button>';
+        form.appendChild(nav);
+        var backBtn = document.getElementById('wz-back'), nextBtn = document.getElementById('wz-next');
+        // the long explanation moves below the form and starts closed, so the question is the first thing seen
+        var guide = document.querySelector('details.value-guide');
+        if (guide) { guide.removeAttribute('open'); form.parentNode.insertBefore(guide, form.nextSibling); }
+        // the real submit button lives in the navigation row (shown on the summary step only)
+        submitBtn.classList.add('menu-btn'); nav.appendChild(submitBtn);
+        backBtn.textContent = W.back;
+
+        // big buttons instead of small menus (the select stays the source of truth)
+        function segment(select) {
+            var box = document.createElement('div');
+            box.className = 'seg'; box.setAttribute('role', 'group');
+            var label = form.querySelector('label[for="' + select.id + '"]');
+            if (label) { box.setAttribute('aria-label', label.textContent.trim()); }
+            Array.prototype.forEach.call(select.options, function (opt) {
+                if (opt.disabled) { return; }
+                var b = document.createElement('button');
+                b.type = 'button'; b.textContent = opt.textContent; b.dataset.value = opt.value;
+                b.addEventListener('click', function () { select.value = opt.value; select.dispatchEvent(new Event('change', { bubbles: true })); sync(); });
+                box.appendChild(b);
+            });
+            function sync() { Array.prototype.forEach.call(box.children, function (b) { b.setAttribute('aria-pressed', String(b.dataset.value === select.value)); }); }
+            select.addEventListener('change', sync); sync();
+            select.classList.add('wz-off');
+            select.parentNode.insertBefore(box, select.nextSibling);
+        }
+        ['sex', 'smoking'].forEach(function (id) { segment(document.getElementById(id)); });
+        form.querySelectorAll('select.unit').forEach(segment);
+
+        function stepValid(i) {
+            var ok = true;
+            if (i === 0) {
+                var p = form.elements['patient_id'];
+                if (p.value === '') { show(p, fmt(M.choose, { label: {{ t.patient|tojson }} })); ok = false; } else { show(p, ''); }
+                if (!check(form.elements['age'])) { ok = false; }
+            } else if (i === 1) {
+                var c = form.elements['cholesterol'], h = form.elements['hdl'];
+                if (!check(c)) { ok = false; }
+                if (!check(h)) { ok = false; }
+                else if (ok && Number(h.value) * MediUnits.factor(form, 'hdl') >= Number(c.value) * MediUnits.factor(form, 'cholesterol')) { show(h, M.hdl); ok = false; }
+            } else if (i === 2) {
+                if (!check(form.elements['blood_pressure'])) { ok = false; }
+            } else if (i === 3) {
+                if (smoking.value === '') { show(smoking, fmt(M.choose, { label: {{ t.smoking|tojson }} })); ok = false; }
+                else if (cigActive() && !check(form.elements['cigarettes'])) { ok = false; }
+            }
+            return ok;
+        }
+
+        function summary() {
+            function text(id) {
+                var el = form.elements[id];
+                if (el.tagName === 'SELECT') { return el.options[el.selectedIndex].textContent.trim(); }
+                var u = form.elements[id + '_unit'];
+                return el.value + (u ? ' ' + u.options[u.selectedIndex].textContent.trim() : '');
+            }
+            function name(id) { var l = form.querySelector('label[for="' + id + '"]'); return l ? l.childNodes[0].textContent.trim() : id; }
+            var rows = [[0, 'patient_id'], [0, 'sex'], [0, 'age'], [1, 'cholesterol'], [1, 'hdl'], [2, 'blood_pressure'], [3, 'smoking']];
+            if (cigActive()) { rows.push([3, 'cigarettes']); }
+            var html = '<p class="hint">' + W.reviewHint + '</p><ul>';
+            rows.forEach(function (r) {
+                html += '<li><span><strong></strong> <span></span></span><button type="button" data-step="' + r[0] + '">' + W.edit + '</button></li>';
+            });
+            var treated = form.querySelector('input[name=treated]');
+            review.innerHTML = html + '</ul>';
+            var items = review.querySelectorAll('li > span');
+            rows.forEach(function (r, n) {
+                items[n].children[0].textContent = name(r[1]) + ':';
+                items[n].children[1].textContent = text(r[1]);
+            });
+            if (treated.checked) {
+                var li = document.createElement('li');
+                li.innerHTML = '<span></span><button type="button" data-step="2">' + W.edit + '</button>';
+                li.firstChild.textContent = treated.closest('label').textContent.trim();
+                review.querySelector('ul').appendChild(li);
+            }
+            review.querySelectorAll('button[data-step]').forEach(function (b) {
+                b.addEventListener('click', function () { go(Number(b.dataset.step), true); });
+            });
+        }
+
+        function go(i, focus) {
+            cur = Math.max(0, Math.min(last, i));
+            steps.forEach(function (list, n) { list.forEach(function (el) { el.classList.toggle('wz-off', n !== cur); }); });
+            breaks.forEach(function (b) { b.classList.add('wz-off'); });
+            var onReview = cur === last;
+            if (onReview) { summary(); }
+            review.classList.toggle('wz-off', !onReview);
+            submitBtn.classList.toggle('wz-off', !onReview);
+            nextBtn.classList.toggle('wz-off', onReview);
+            backBtn.classList.toggle('wz-off', cur === 0);
+            head.querySelector('.wz-count').textContent = onReview ? W.review : W.step.replace('{n}', cur + 1).replace('{total}', last);
+            head.querySelector('.wz-bar i').style.width = (onReview ? 100 : (cur + 1) / last * 100) + '%';
+            head.querySelector('h2').textContent = onReview ? W.reviewTitle : W.t[cur];
+            head.querySelector('.wz-help').textContent = onReview ? '' : W.h[cur];
+            head.querySelector('.wz-help').hidden = onReview;
+            nextBtn.textContent = cur === last - 1 ? W.reviewBtn : W.next;
+            if (focus) {
+                head.scrollIntoView({ block: 'start' });
+                var first = onReview ? review.querySelector('button') : steps[cur][0].querySelector('input:not([type=hidden]), button, select:not(.wz-off)');
+                if (first) { first.focus({ preventScroll: true }); }
+            }
+        }
+        function goToInvalid() {
+            for (var n = 0; n < last; n++) {
+                if (steps[n].some(function (el) { return el.querySelector('.invalid') || el.classList.contains('invalid'); })) { go(n, true); return; }
+            }
+        }
+        function forward() { if (stepValid(cur)) { go(cur + 1, true); } }
+        nextBtn.addEventListener('click', forward);
+        backBtn.addEventListener('click', function () { go(cur - 1, true); });
+        // Enter inside a field moves on instead of submitting; only the summary step really submits
+        form.addEventListener('submit', function (e) {
+            if (cur < last) { e.preventDefault(); e.stopImmediatePropagation(); forward(); return; }
+            setTimeout(goToInvalid, 0);      // runs after the full check below: jump to the first wrong answer
+        });
+        var firstInvalid = false;
+        for (var n = 0; n < last && !firstInvalid; n++) {
+            if (steps[n].some(function (el) { return el.querySelector('.invalid'); })) { firstInvalid = true; go(n, false); }
+        }
+        if (!firstInvalid) { go(0, false); }
+    })();
+
     form.addEventListener('submit', function (e) {
         var ok = true;
         var choice = form.elements['patient_id'];

@@ -1627,3 +1627,31 @@ def test_text_size_button_names_what_the_next_click_does(client, lang, bigger, s
     html = client.get(f"/new?lang={lang}").get_data(as_text=True)
     assert f'data-bigger="A+ {bigger}"' in html and f'data-smaller="A\u2212 {smaller}"'.replace("\\u2212", "\u2212") in html
     assert "size.textContent = large ? size.dataset.smaller : size.dataset.bigger" in html
+
+
+# ---------- Step-by-step risk form (progressive: the full form stays in the HTML) ----------
+def _as_script_json(text):
+    """How the template's tojson filter writes a text inside the script (ASCII escapes, HTML-safe)."""
+    import json
+    return json.dumps(text).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026").replace("'", "\\u0027")
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_risk_form_has_step_texts_in_every_language(client, lang):
+    html = client.get(f"/risk?lang={lang}").get_data(as_text=True)
+    for key in ("wz_t1", "wz_t2", "wz_t3", "wz_t4", "wz_back", "wz_next", "wz_review_btn", "wz_edit"):
+        assert _as_script_json(texts[lang][key]) in html, (lang, key)
+    assert "{n}" in texts[lang]["wz_step"] and "{total}" in texts[lang]["wz_step"]
+
+
+def test_risk_form_still_contains_every_field_without_javascript(client):
+    html = client.get("/risk").get_data(as_text=True)
+    for name in ('name="patient_id"', 'name="sex"', 'name="age"', 'name="cholesterol"', 'name="hdl"',
+                 'name="blood_pressure"', 'name="smoking"', 'name="cigarettes"', 'name="treated"', 'type="submit"'):
+        assert name in html, name
+    assert 'id="wz-head"' not in html.split("<script>")[0]     # steps are added by script only
+
+
+def test_step_script_stops_enter_from_submitting_early(client):
+    html = client.get("/risk").get_data(as_text=True)
+    assert "stopImmediatePropagation" in html and "goToInvalid" in html

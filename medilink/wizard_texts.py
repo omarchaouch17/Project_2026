@@ -1,0 +1,43 @@
+"""wizard_texts.py - texts of the step-by-step risk form (one question at a time)."""
+WIZARD_TEXTS = {
+    "de": {
+        "wz_step": "Schritt {n} von {total}", "wz_review_label": "Zusammenfassung",
+        "wz_t1": "Wer ist die Person?", "wz_h1": "Diese Angaben genügen für den Anfang.",
+        "wz_t2": "Cholesterin", "wz_h2": "Sie finden die Werte in Ihrem Blutbefund.",
+        "wz_t3": "Blutdruck", "wz_h3": "Der obere Wert (systolisch), in Ruhe gemessen.",
+        "wz_t4": "Rauchen", "wz_h4": "Eine Antwort genügt. Es gibt keine falsche Antwort.",
+        "wz_back": "Zurück", "wz_next": "Weiter", "wz_review_btn": "Zusammenfassung ansehen",
+        "wz_review_title": "Antworten prüfen", "wz_review_hint": "Tippen Sie auf „Ändern“, um eine Antwort zu korrigieren.",
+        "wz_edit": "Ändern",
+    },
+    "en": {
+        "wz_step": "Step {n} of {total}", "wz_review_label": "Summary",
+        "wz_t1": "Who is it for?", "wz_h1": "These details are enough to start.",
+        "wz_t2": "Cholesterol", "wz_h2": "You find these values on your blood test.",
+        "wz_t3": "Blood pressure", "wz_h3": "The top number (systolic), measured at rest.",
+        "wz_t4": "Smoking", "wz_h4": "One answer is enough. There is no wrong answer.",
+        "wz_back": "Back", "wz_next": "Next", "wz_review_btn": "See summary",
+        "wz_review_title": "Check your answers", "wz_review_hint": "Tap “Change” to correct an answer.",
+        "wz_edit": "Change",
+    },
+    "fr": {
+        "wz_step": "Étape {n} sur {total}", "wz_review_label": "Résumé",
+        "wz_t1": "Qui est concerné ?", "wz_h1": "Ces informations suffisent pour commencer.",
+        "wz_t2": "Cholestérol", "wz_h2": "Vous les trouvez sur votre prise de sang.",
+        "wz_t3": "Tension artérielle", "wz_h3": "Le chiffre du haut (systolique), mesuré au repos.",
+        "wz_t4": "Tabac", "wz_h4": "Une seule réponse suffit. Il n'y a pas de mauvaise réponse.",
+        "wz_back": "Retour", "wz_next": "Suivant", "wz_review_btn": "Voir le résumé",
+        "wz_review_title": "Vérifiez vos réponses", "wz_review_hint": "Appuyez sur « Modifier » pour corriger une réponse.",
+        "wz_edit": "Modifier",
+    },
+    "ar": {
+        "wz_step": "الخطوة {n} من {total}", "wz_review_label": "الملخص",
+        "wz_t1": "من هو الشخص؟", "wz_h1": "هذه المعلومات تكفي للبدء.",
+        "wz_t2": "الكوليسترول", "wz_h2": "تجدها في نتيجة تحليل الدم.",
+        "wz_t3": "ضغط الدم", "wz_h3": "الرقم الأعلى (الانقباضي) عند القياس في حالة الراحة.",
+        "wz_t4": "التدخين", "wz_h4": "إجابة واحدة تكفي. لا توجد إجابة خاطئة.",
+        "wz_back": "رجوع", "wz_next": "التالي", "wz_review_btn": "عرض الملخص",
+        "wz_review_title": "تحقق من إجاباتك", "wz_review_hint": "اضغط على «تعديل» لتصحيح إجابة.",
+        "wz_edit": "تعديل",
+    },
+}

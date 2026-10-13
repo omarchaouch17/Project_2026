@@ -103,3 +103,10 @@ It was first called MediLink and then Fahemni; both names are already used by ot
 * Only the year is stored, so the age is an estimate (year difference or one less). The forms still check the exact age.
 * Older patients without a year are asked for it on the overview page (`ALTER TABLE ... ADD COLUMN birth_year` runs at start-up).
 * Arabic texts of this page need a native-speaker check.
+
+## Step-by-step risk form
+
+The risk form shows **one question at a time** (who, cholesterol, blood pressure, smoking), with a progress bar, big buttons for
+sex / smoking / units, and a summary where every answer can be corrected. It is added by JavaScript on top of the normal form:
+without JavaScript the complete form is shown as before. The server still checks every value; the browser check is only a convenience.
+The explanation of the values moved below the form and starts closed.
