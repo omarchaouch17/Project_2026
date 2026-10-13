@@ -5,7 +5,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }}</title>
+    <script>
+        /* Theme and text size are applied before the page is drawn (no flash). Light + 19 px is the default. */
+        (function () {
+            try {
+                var d = document.documentElement;
+                d.dataset.theme = localStorage.getItem('medilink-theme') || 'light';
+                d.dataset.size = localStorage.getItem('medilink-size') || 'normal';
+            } catch (e) { document.documentElement.dataset.theme = 'light'; document.documentElement.dataset.size = 'normal'; }
+        })();
+    </script>
     <style>
+        /* Colours are variables. Light = default (like NHS: dark text on a light background, easier for older eyes). */
+        :root {
+            --bg: #f0f4f5; --card: #ffffff; --text: #212b32; --muted: #4c6272;
+            --accent: #005eb8; --link: #005eb8; --border: #768692;
+            --btn-bg: #007f3b; --btn-text: #ffffff; --btn2-bg: #ffffff; --btn2-text: #005eb8;
+            --focus: #ffeb3b; --focus-text: #212b32;
+            --err: #a8200f; --err-bg: #fdeceb; --ok: #0b5c2b; --ok-bg: #e6f4ea; --warn: #6b4a00;
+            --low-bg: #d9f2e3; --low-text: #0b5c2b; --low-border: #1e8e4e;
+            --mid-bg: #fff1c9; --mid-text: #6b4a00; --mid-border: #b8860b;
+            --high-bg: #fbe0dd; --high-text: #8a1c14; --high-border: #c0392b;
+            --msg-user: #005eb8; --msg-user-text: #fff; --msg-bot: #e3eaee; --soft: #e3eaee;
+            --field-bg: #ffffff; --field-text: #212b32; --soft-border: #aeb7bd;
+        }
+        :root[data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #a9b6c8;
+            --accent: #38bdf8; --link: #7dd3fc; --border: #64748b;
+            --btn-bg: #38bdf8; --btn-text: #0b1321; --btn2-bg: #1e293b; --btn2-text: #7dd3fc;
+            --focus: #ffeb3b; --focus-text: #0b1321;
+            --err: #fca5a5; --err-bg: #450a0a; --ok: #bbf7d0; --ok-bg: #052e16; --warn: #fbbf24;
+            --low-bg: #064e3b; --low-text: #a7f3d0; --low-border: #34d399;
+            --mid-bg: #451a03; --mid-text: #fde68a; --mid-border: #fbbf24;
+            --high-bg: #450a0a; --high-text: #fecaca; --high-border: #f87171;
+            --msg-user: #0369a1; --msg-user-text: #fff; --msg-bot: #1e293b; --soft: #1e293b;
+            --field-bg: #ffffff; --field-text: #0b1321; --soft-border: #334155;
+        }
+
+        html { font-size: 19px; }                       /* base size: 19 px (NHS), everything else in em/rem */
+        html[data-size="large"] { font-size: 23px; }
+        @media (max-width: 480px) { html { font-size: 18px; } html[data-size="large"] { font-size: 22px; } }
+
         html,
         body {
             height: 100%;
@@ -13,53 +53,85 @@
         }
 
         body {
-            background-color: #0f172a;
-            color: #e2e8f0;
-            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: Arial, 'Segoe UI', Helvetica, sans-serif;
+            line-height: 1.5;
+            padding: 24px 16px 48px;
+            box-sizing: border-box;
+            height: auto;
+            min-height: 100%;
             text-align: center;
-            padding-top: 80px;
         }
 
-        h1 {
-            color: #38bdf8;
+        h1 { color: var(--accent); font-size: 1.9rem; line-height: 1.25; margin: 0.6em 0 0.4em; }
+        h2 { font-size: 1.4rem; line-height: 1.3; }
+        p { max-width: 36em; margin-left: auto; margin-right: auto; }
+        p, li, label, td, th { text-align: start; }
+        h1, h2, h3, .center { text-align: center; }
+
+        a { color: var(--link); text-underline-offset: 3px; }
+        a:hover { text-decoration-thickness: 3px; }
+
+        /* Visible keyboard focus: yellow, thick */
+        a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+            outline: 3px solid var(--focus); outline-offset: 2px; background-color: var(--focus); color: var(--focus-text);
+            box-shadow: 0 0 0 5px var(--focus-text);
         }
 
-        a {
-            color: #94a3b8;
-        }
-
-        input,
-        select {
-            padding: 8px;
+        input, select {
+            font: inherit;
+            font-size: 1rem;
+            padding: 10px 12px;
+            min-height: 48px;
             margin: 5px;
             border-radius: 4px;
-            border: none;
+            border: 2px solid var(--border);
+            background: var(--field-bg);
+            color: var(--field-text);
+            box-sizing: border-box;
         }
+        input[type=checkbox], input[type=radio] { min-height: 0; width: 1.4em; height: 1.4em; margin: 0 8px; vertical-align: middle; accent-color: var(--accent); }
 
         button {
-            padding: 8px 20px;
-            background-color: #38bdf8;
-            border: none;
-            border-radius: 4px;
+            font: inherit;
+            font-weight: 700;
+            min-height: 48px;
+            padding: 10px 28px;
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: 2px solid transparent;
+            border-radius: 6px;
             cursor: pointer;
         }
+        button:hover { filter: brightness(0.92); }
+        button:active { transform: translateY(1px); }
 
-        .lang-switch a.active {
-            color: #38bdf8;
-            font-weight: bold;
-        }
+        /* Top bar: language + text size + theme */
+        .lang-switch { margin-bottom: 8px; }
+        .lang-switch a { display: inline-block; padding: 8px 10px; font-weight: 700; }
+        .lang-switch a.active { color: var(--text); text-decoration: none; border-bottom: 4px solid var(--accent); }
+        .tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 8px; }
+        .tools button { min-height: 44px; padding: 6px 14px; font-size: 0.85rem; background: var(--btn2-bg); color: var(--btn2-text); border: 2px solid var(--accent); }
 
-        /* Forms: label, field, range hint and red error message */
+        /* Home menu: large buttons, one per line */
+        .menu { display: flex; flex-direction: column; gap: 12px; width: min(420px, 100%); margin: 18px auto; }
+        .menu-btn { display: block; box-sizing: border-box; padding: 14px 18px; min-height: 56px; border-radius: 8px; background: var(--btn-bg); color: var(--btn-text) !important; font-weight: 700; text-decoration: none; text-align: center; }
+        .menu-btn.secondary { background: var(--btn2-bg); color: var(--btn2-text) !important; border: 2px solid var(--accent); }
+        .card { text-align: start; background: var(--card); border: 1px solid var(--soft-border); border-radius: 8px; padding: 14px 16px; margin: 14px auto; width: min(520px, 100%); box-sizing: border-box; }
+
+        /* Forms: label, field, range hint and error message */
         .field {
-            margin: 12px auto;
-            width: min(320px, 90%);
+            margin: 16px auto;
+            width: min(420px, 100%);
             text-align: start;
         }
 
         .field label {
             display: block;
-            font-size: 0.9em;
-            margin-bottom: 2px;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
         .field input[type=text],
@@ -72,81 +144,99 @@
 
         .hint {
             display: block;
-            color: #94a3b8;
-            font-size: 0.8em;
-            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.85rem;      /* 16 px at base size: not smaller */
+            margin-top: 3px;
         }
 
         .error {
-            color: #f87171;
-            font-size: 0.85em;
+            color: var(--err);
+            font-size: 0.9rem;
+            font-weight: 700;
             min-height: 1.2em;
-            margin-top: 2px;
+            margin-top: 3px;
         }
 
         .invalid {
-            outline: 2px solid #f87171;
+            outline: 3px solid var(--err);
         }
 
         .error-box {
-            background: #450a0a;
-            border: 1px solid #f87171;
-            color: #fecaca;
+            background: var(--err-bg);
+            border: 2px solid var(--err);
+            color: var(--err);
             border-radius: 6px;
-            padding: 8px 12px;
-            margin: 10px auto;
-            width: min(320px, 90%);
+            padding: 10px 14px;
+            margin: 12px auto;
+            width: min(420px, 100%);
+            box-sizing: border-box;
+            text-align: start;
+            font-weight: 700;
         }
 
         .success-box {
-            background: #052e16;
-            border: 1px solid #34d399;
-            color: #bbf7d0;
+            background: var(--ok-bg);
+            border: 2px solid var(--ok);
+            color: var(--ok);
             border-radius: 6px;
-            padding: 8px 12px;
-            margin: 10px auto;
-            width: min(320px, 90%);
+            padding: 10px 14px;
+            margin: 12px auto;
+            width: min(420px, 100%);
+            box-sizing: border-box;
+            text-align: start;
         }
 
         .check {
             display: block;
-            margin: 6px auto;
-            width: min(320px, 90%);
+            margin: 10px auto;
+            width: min(520px, 100%);
             text-align: start;
+            padding: 6px 0;
         }
+
+        .warn-text { color: var(--warn); font-weight: 700; }
 
         /* Result page: risk category (always with text, not only colour), tips, emergency note */
         .badge {
             display: inline-block;
-            padding: 6px 16px;
+            padding: 8px 20px;
             border-radius: 999px;
-            font-weight: 600;
-            border: 1px solid transparent;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border: 2px solid transparent;
         }
 
-        .badge-low { background: #064e3b; color: #a7f3d0; border-color: #34d399; }
-        .badge-medium { background: #451a03; color: #fde68a; border-color: #fbbf24; }
-        .badge-high { background: #450a0a; color: #fecaca; border-color: #f87171; }
+        .badge-low { background: var(--low-bg); color: var(--low-text); border-color: var(--low-border); }
+        .badge-medium { background: var(--mid-bg); color: var(--mid-text); border-color: var(--mid-border); }
+        .badge-high { background: var(--high-bg); color: var(--high-text); border-color: var(--high-border); }
 
         .tips {
             display: inline-block;
-            max-width: min(520px, 92%);
+            max-width: min(560px, 100%);
             text-align: start;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .emergency {
-            margin: 14px auto;
-            max-width: min(520px, 92%);
-            padding: 8px 12px;
-            border-inline-start: 4px solid #f87171;
-            background: #1e293b;
+            margin: 16px auto;
+            max-width: min(560px, 100%);
+            padding: 12px 16px;
+            border-inline-start: 6px solid var(--high-border);
+            background: var(--card);
             text-align: start;
+            box-sizing: border-box;
         }
+
+        table { border-collapse: collapse; }
+        @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
     </style>
 </head>
 
 <body>
+    <div class="tools">
+        <button type="button" id="size-toggle" aria-pressed="false">A+ {{ t.ui_text_size }}</button>
+        <button type="button" id="theme-toggle" aria-pressed="false">{{ t.ui_theme }}</button>
+    </div>
     {% if show_languages %}
     <div class="lang-switch">
         {% for code in languages %}
@@ -155,6 +245,23 @@
     </div>
     {% endif %}
     {% block content %}{% endblock %}
+    <script>
+        (function () {
+            var d = document.documentElement;
+            function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+            function sync() {
+                document.getElementById('size-toggle').setAttribute('aria-pressed', d.dataset.size === 'large');
+                document.getElementById('theme-toggle').setAttribute('aria-pressed', d.dataset.theme === 'dark');
+            }
+            document.getElementById('size-toggle').addEventListener('click', function () {
+                d.dataset.size = d.dataset.size === 'large' ? 'normal' : 'large'; save('medilink-size', d.dataset.size); sync();
+            });
+            document.getElementById('theme-toggle').addEventListener('click', function () {
+                d.dataset.theme = d.dataset.theme === 'dark' ? 'light' : 'dark'; save('medilink-theme', d.dataset.theme); sync();
+            });
+            sync();
+        })();
+    </script>
 </body>
 
 </html>

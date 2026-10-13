@@ -30,21 +30,21 @@
 <p class="value-intro">{{ t.info_disclaimer }}</p>
 </details>
 <style>
-    .value-guide { border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; margin: 14px 0; text-align: start; }
-    .value-guide summary { cursor: pointer; color: #38bdf8; font-weight: bold; }
-    .value-intro { font-size: .85em; color: #94a3b8; }
+    .value-guide { border: 1px solid var(--soft-border); background: var(--card); border-radius: 8px; padding: 12px 16px; margin: 16px 0; text-align: start; }
+    .value-guide summary { cursor: pointer; color: var(--link); font-weight: bold; }
+    .value-intro { font-size: .9rem; color: var(--muted); }
     .scale { margin: 26px 0 14px; }
-    .scale h3 { margin: 0 0 44px; font-size: 1em; color: #e2e8f0; }
+    .scale h3 { margin: 0 0 44px; font-size: 1rem; color: var(--text); }
     .bar { position: relative; display: flex; height: 34px; border-radius: 6px; margin-bottom: 52px; }
-    .zone { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .72em; line-height: 1.15; color: #0f172a; overflow: hidden; text-align: center; }
+    .zone { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .8rem; line-height: 1.15; font-weight: 700; color: #0f172a; overflow: hidden; text-align: center; }
     .zone:first-of-type { border-radius: 6px 0 0 6px; } .zone:last-of-type { border-radius: 0 6px 6px 0; }
     .zone small { opacity: .75; }
     .zone-good { background: #34d399; } .zone-medium { background: #fbbf24; } .zone-high { background: #f87171; }
     .marker { position: absolute; top: -12px; width: 0; height: 46px; border-inline-start: 2px solid; transform: translateX(-1px); z-index: 2; }
-    .marker b { position: absolute; bottom: 100%; left: 0; transform: translateX(-50%); white-space: nowrap; font-size: .72em; line-height: 1.2; text-align: center; padding: 1px 6px; border-radius: 4px; margin-bottom: 2px; }
-    .marker-example { border-color: #94a3b8; top: 0; height: 46px; }
-    .marker-example b { bottom: auto; top: 100%; margin: 2px 0 0; } .marker-example b { background: #475569; color: #f1f5f9; }
-    .marker-yours { border-color: #38bdf8; } .marker-yours b { background: #0284c7; color: #fff; }
+    .marker b { position: absolute; bottom: 100%; left: 0; transform: translateX(-50%); white-space: nowrap; font-size: .8rem; line-height: 1.2; text-align: center; padding: 1px 6px; border-radius: 4px; margin-bottom: 2px; }
+    .marker-example { border-color: var(--text); top: 0; height: 46px; }
+    .marker-example b { bottom: auto; top: 100%; margin: 2px 0 0; } .marker-example b { background: #334155; color: #fff; }
+    .marker-yours { border-color: var(--link); } .marker-yours b { background: #005eb8; color: #fff; }
     .marker-yours { z-index: 3; }
 </style>
 <script>

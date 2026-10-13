@@ -70,3 +70,8 @@ Logic: `screening.py` (pure functions, tested), texts: `screening_texts.py` (DE/
 ## Units for lab values
 
 Labs use different units (e.g. in Tunisia g/L or mmol/L for cholesterol, µmol/L for creatinine, cmHg for blood pressure). Every lab field has a unit select; `units.py` converts to mg/dL / mmHg **before** range checks and calculations (1 mmol/L = 38.67 mg/dL cholesterol, 1 g/L = 100 mg/dL, 1 µmol/L = 1/88.4 mg/dL creatinine, 1 cmHg = 10 mmHg). Range hints, error messages and the "your value" marker follow the chosen unit.
+
+## Readability for older users
+Light theme and 19 px text by default (NHS design system values), buttons at least 48 px high, yellow focus outline,
+home menu as large buttons. Two buttons at the top switch to larger text (23 px) and to the dark theme; the choice is
+remembered in the browser. Colours are CSS variables in `templates/base.html`.

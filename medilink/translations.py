@@ -535,3 +535,8 @@ def category_name(key, language):
 from screening_texts import SCREENING_TEXTS  # noqa: E402
 for _lang, _extra in SCREENING_TEXTS.items():
     texts[_lang].update(_extra)
+
+# Labels of the accessibility buttons (text size, light/dark)
+from ui_texts import UI_TEXTS  # noqa: E402
+for _lang, _extra in UI_TEXTS.items():
+    texts[_lang].update(_extra)

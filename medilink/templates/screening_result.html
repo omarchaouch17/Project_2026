@@ -20,7 +20,7 @@
 {% if missing %}
 <h2>{{ t.sc_labs_title }}</h2>
 <ul class="tips">{% for key in missing %}<li>{{ t[key] }}</li>{% endfor %}</ul>
-<p class="hint" style="color:#fbbf24;">{{ t.sc_missing_note }}</p>
+<p class="hint" style="color:var(--warn); font-weight:700;">{{ t.sc_missing_note }}</p>
 {% endif %}
 
 {% if level == 'proceed' %}

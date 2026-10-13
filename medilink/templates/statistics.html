@@ -6,42 +6,42 @@
 
 <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:18px 0;">
     {% for label, value in [(t.stat_visitors, stat.visitors), (t.stat_patients, stat.patients), (t.stat_calculations, stat.calculations), (t.stat_average, (stat.average ~ ' %') if stat.average is not none else '–')] %}
-    <div style="border:1px solid #334155; border-radius:8px; padding:10px 18px; min-width:100px;">
-        <div style="font-size:1.6em; color:#38bdf8; direction:ltr;">{{ value }}</div>
-        <div style="font-size:.85em; color:#94a3b8;">{{ label }}</div>
+    <div style="border:1px solid var(--soft-border); border-radius:8px; padding:10px 18px; min-width:100px;">
+        <div style="font-size:1.6rem; color:var(--link); direction:ltr;">{{ value }}</div>
+        <div style="font-size:.9rem; color:var(--muted);">{{ label }}</div>
     </div>
     {% endfor %}
 </div>
 
 {% if entries %}
 <div style="overflow-x:auto;">
-<table style="margin:0 auto; color:#e2e8f0; border-collapse:collapse;">
+<table style="margin:0 auto; color:var(--text); border-collapse:collapse;">
     <tr>
-        <th style="padding:5px 12px;">#</th>
-        <th style="padding:5px 12px;">{{ t.date }}</th>
-        {% if admin %}<th style="padding:5px 12px;">{{ t.name }}</th>{% endif %}
-        <th style="padding:5px 12px;">{{ t.age }}</th>
+        <th style="padding:8px 12px;">#</th>
+        <th style="padding:8px 12px;">{{ t.date }}</th>
+        {% if admin %}<th style="padding:8px 12px;">{{ t.name }}</th>{% endif %}
+        <th style="padding:8px 12px;">{{ t.age }}</th>
         {% if admin %}
-        <th style="padding:5px 12px;">{{ t.cholesterol }}</th>
-        <th style="padding:5px 12px;">{{ t.hdl }}</th>
-        <th style="padding:5px 12px;">{{ t.blood_pressure }}</th>
-        <th style="padding:5px 12px;">{{ t.smoking }}</th>
+        <th style="padding:8px 12px;">{{ t.cholesterol }}</th>
+        <th style="padding:8px 12px;">{{ t.hdl }}</th>
+        <th style="padding:8px 12px;">{{ t.blood_pressure }}</th>
+        <th style="padding:8px 12px;">{{ t.smoking }}</th>
         {% endif %}
-        <th style="padding:5px 12px;">{{ t.risk_column }}</th>
+        <th style="padding:8px 12px;">{{ t.risk_column }}</th>
     </tr>
     {% for e in entries %}
-    <tr style="border-top:1px solid #334155;{% if e.own %} background:#0c4a6e55;{% endif %}">
-        <td style="padding:5px 12px; direction:ltr;">{{ e.number }}</td>
-        <td style="padding:5px 12px;">{{ e.date }}</td>
-        {% if admin %}<td style="padding:5px 12px;">{{ e.name or '–' }}</td>{% endif %}
-        <td style="padding:5px 12px;">{{ e.age }}</td>
+    <tr style="border-top:1px solid var(--soft-border);{% if e.own %} background:var(--soft);{% endif %}">
+        <td style="padding:8px 12px; direction:ltr;">{{ e.number }}</td>
+        <td style="padding:8px 12px;">{{ e.date }}</td>
+        {% if admin %}<td style="padding:8px 12px;">{{ e.name or '–' }}</td>{% endif %}
+        <td style="padding:8px 12px;">{{ e.age }}</td>
         {% if admin %}
-        <td style="padding:5px 12px;">{{ e.chol }}</td>
-        <td style="padding:5px 12px;">{{ e.hdl }}</td>
-        <td style="padding:5px 12px;">{{ e.bp }}</td>
-        <td style="padding:5px 12px;">{{ t['smoking_current'] if e.smoker else t['smoking_never'] }}{% if e.cigarettes %} ({{ e.cigarettes }}){% endif %}</td>
+        <td style="padding:8px 12px;">{{ e.chol }}</td>
+        <td style="padding:8px 12px;">{{ e.hdl }}</td>
+        <td style="padding:8px 12px;">{{ e.bp }}</td>
+        <td style="padding:8px 12px;">{{ t['smoking_current'] if e.smoker else t['smoking_never'] }}{% if e.cigarettes %} ({{ e.cigarettes }}){% endif %}</td>
         {% endif %}
-        <td style="padding:5px 12px; direction:ltr;"><span class="badge badge-{{ e.category }}" style="padding:2px 8px;">{{ e.percent }}%</span>{% if e.own %} <small>★ {{ t.stat_yours }}</small>{% endif %}</td>
+        <td style="padding:8px 12px; direction:ltr;"><span class="badge badge-{{ e.category }}" style="padding:2px 8px;">{{ e.percent }}%</span>{% if e.own %} <small>★ {{ t.stat_yours }}</small>{% endif %}</td>
     </tr>
     {% endfor %}
 </table>

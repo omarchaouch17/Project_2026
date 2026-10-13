@@ -3,7 +3,7 @@
 {% block content %}
 <h1>{{ t.history_title }}</h1>
 {% if risks %}
-    <table style="margin: 0 auto; color: #e2e8f0;">
+    <table style="margin: 0 auto; color: var(--text);">
         <tr><th style="padding: 5px 15px;">{{ t.date }}</th><th style="padding: 5px 15px;">{{ t.risk_column }}</th></tr>
         {% for percent, date in risks %}
         <tr><td style="padding: 5px 15px;">{{ date }}</td><td style="padding: 5px 15px;">{{ percent }}%</td></tr>

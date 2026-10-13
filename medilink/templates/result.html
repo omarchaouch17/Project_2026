@@ -5,7 +5,7 @@
 {% if smoking_line %}<p>{{ smoking_line }}</p>{% endif %}
 
 {% if modifier_keys %}
-<p class="hint" style="color:#fbbf24;">{{ t.mod_note }}</p>
+<p class="hint" style="color:var(--warn); font-weight:700;">{{ t.mod_note }}</p>
 <ul class="tips">{% for key in modifier_keys %}<li>{{ t['m_' ~ key] }}</li>{% endfor %}</ul>
 {% endif %}
 
@@ -33,18 +33,18 @@
     </form>
 </section>
 <style>
-    .chat { border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; margin: 18px 0; text-align: start; }
+    .chat { border: 1px solid var(--soft-border); border-radius: 8px; padding: 12px 14px; margin: 18px 0; text-align: start; }
     #chat-log { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
     .msg { padding: 8px 12px; border-radius: 10px; max-width: 90%; white-space: pre-wrap; }
-    .msg-user { background: #0369a1; color: #fff; align-self: flex-end; }
-    .msg-bot { background: #1e293b; color: #e2e8f0; align-self: flex-start; }
-    .msg-err { background: #450a0a; color: #fecaca; align-self: flex-start; }
+    .msg-user { background: var(--msg-user); color: var(--msg-user-text); align-self: flex-end; }
+    .msg-bot { background: var(--msg-bot); color: var(--text); align-self: flex-start; }
+    .msg-err { background: var(--err-bg); color: var(--err); align-self: flex-start; }
     #chat-form { display: flex; gap: 8px; }
-    #chat-input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font: inherit; }
-    #chat-send { padding: 8px 16px; border-radius: 6px; border: 0; background: #0284c7; color: #fff; cursor: pointer; font: inherit; }
+    #chat-input { flex: 1; padding: 8px; border-radius: 6px; border: 2px solid var(--border); background: var(--field-bg); color: var(--field-text); min-height: 48px; font: inherit; }
+    #chat-send { padding: 8px 18px; border-radius: 6px; border: 0; background: var(--btn-bg); color: var(--btn-text); min-height: 48px; cursor: pointer; font: inherit; }
     #chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-    .chip { background: #1e293b; color: #7dd3fc; border: 1px solid #334155; border-radius: 999px; padding: 4px 12px; cursor: pointer; font: inherit; font-size: .85em; }
-    .chip:hover { background: #0c4a6e; }
+    .chip { background: var(--card); color: var(--btn2-text); min-height: 44px; border: 2px solid var(--accent) !important; border-radius: 999px; padding: 6px 14px; cursor: pointer; font: inherit; font-size: .9rem; }
+    .chip:hover { background: var(--soft); }
     #chat-send:disabled { opacity: .5; cursor: wait; }
 </style>
 <script>

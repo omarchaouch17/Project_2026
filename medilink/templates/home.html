@@ -96,30 +96,28 @@
 <div id="main-content">
 <h1>{{ t.title }}</h1>
 <h2>{{ t.patients }}</h2>
-<p>
-    <a href="/new?lang={{ lang }}">{{ t.new_patient_link }}</a>
-    &nbsp;|&nbsp;
-    <a href="/risk?lang={{ lang }}">{{ t.risk_link }}</a>
-    &nbsp;|&nbsp;
-    <a href="/statistics?lang={{ lang }}">{{ t.statistics_link }}</a>
-</p>
+<nav class="menu">
+    <a class="menu-btn" href="/new?lang={{ lang }}">{{ t.new_patient_link }}</a>
+    <a class="menu-btn" href="/risk?lang={{ lang }}">{{ t.risk_link }}</a>
+    <a class="menu-btn secondary" href="/statistics?lang={{ lang }}">{{ t.statistics_link }}</a>
+</nav>
 {% if others %}<p class="hint">{{ t.others_hint }}</p>{% endif %}
 
 {% for patient_id, patient in patients.items() %}
-<div style="margin-bottom: 15px; padding: 10px; border: 1px solid #334155; border-radius: 6px;">
+<div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--soft-border); border-radius: 6px;">
     <strong>{{ patient.name }}</strong>
     {% if patient.risk %}
-    <span style="color:#fbbf24;"> | {{ t.risk_label }}: {{ patient.risk[0] }}% ({{ patient.risk[1] }})</span>
+    <span style="color:var(--warn); font-weight:700;"> | {{ t.risk_label }}: {{ patient.risk[0] }}% ({{ patient.risk[1] }})</span>
     {% endif %}
 {% if patient.can_view %}
-    <a href="/history/{{ patient_id }}?lang={{ lang }}" style="color:#38bdf8;">{{ t.history_link }}</a>
+    <a href="/history/{{ patient_id }}?lang={{ lang }}" style="color:var(--link);">{{ t.history_link }}</a>
 
     <form action="/delete/{{ patient_id }}" method="POST"
-          style="display:inline; float:inline-end;"
+          style="display:block; margin-top:10px;"
           onsubmit='return confirm({{ t.delete_confirm|tojson }});'>
         <input type="hidden" name="lang" value="{{ lang }}">
         <button type="submit"
-                style="background:none; border:none; color:#f87171; cursor:pointer; font-size:inherit; padding:0; margin:0; text-decoration:underline;">
+                style="background:none; border:none; color:var(--err); cursor:pointer; font-size:inherit; padding:0; margin:0; text-decoration:underline;">
             {{ t.delete }}
         </button>
     </form>
