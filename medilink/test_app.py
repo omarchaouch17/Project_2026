@@ -36,7 +36,7 @@ def fake_db(monkeypatch):
     """Replace the database functions so tests never touch the real patients.db."""
     saved = []
     monkeypatch.setattr(app_module, "add_patient",
-                        lambda name, text: saved.append(name) or 99)
+                        lambda name, text, birth_year=None: saved.append(name) or 99)
     monkeypatch.setattr(app_module, "add_condition",
                         lambda patient_id, diagnosis, category: None)
     monkeypatch.setattr(app_module, "save_risk", lambda *args, **kwargs: None)
@@ -117,11 +117,11 @@ def test_form_page_loads(client):
 
 def test_add_patient_shows_confirmation(client, fake_db):
     response = client.post("/add", data={
-        "name": "Test Patient", "diagnosis": "Hypertension", "category": "Cardiology", "lang": "de"})
+        "name": "Test Patient", "diagnosis": "Hypertension", "category": "Cardiology", "birth_year": "1975", "lang": "de"})
     assert response.status_code == 302
     assert fake_db == ["Test Patient"]
     location = response.headers["Location"]
-    assert "/screening?" in location and "patient=99" in location and "new=1" in location and "lang=de" in location
+    assert "/patient/99/start" in location and "new=1" in location and "lang=de" in location
 
 
 def test_add_patient_empty_fields_rejected(client, fake_db):
@@ -314,13 +314,13 @@ def test_valid_category_is_saved(client, monkeypatch, fake_db):
     saved = []
     monkeypatch.setattr(app_module, "add_condition",
                         lambda pid, diagnosis, category: saved.append(category))
-    client.post("/add", data={"name": "A", "diagnosis": "Asthma", "category": "Pulmonology"})
+    client.post("/add", data={"name": "A", "diagnosis": "Asthma", "category": "Pulmonology", "birth_year": "1975"})
     assert saved == ["Pulmonology"]
 
 
 @pytest.mark.parametrize("value", ["", "Magic", "<script>"])
 def test_category_outside_list_is_rejected(client, fake_db, value):
-    response = client.post("/add", data={"name": "A", "diagnosis": "Asthma", "category": value})
+    response = client.post("/add", data={"name": "A", "diagnosis": "Asthma", "category": value, "birth_year": "1975"})
     assert response.status_code == 400
     assert fake_db == []
     assert "please make a selection" in response.get_data(as_text=True)
@@ -359,7 +359,7 @@ def test_all_dropdown_diagnoses_have_translations():
 
 
 def post_patient(client, **overrides):
-    data = {"name": "A", "diagnosis": "Asthma", "category": "Pulmonology"}
+    data = {"name": "A", "diagnosis": "Asthma", "category": "Pulmonology", "birth_year": "1975"}
     data.update(overrides)
     return client.post("/add", data=data)
 
@@ -514,13 +514,13 @@ def test_result_page_tips_follow_language(client, fake_risk):
     assert "نصائح عامة" in html and "112" in html
 
 
-def test_new_patient_lands_on_questionnaire_with_banner(client, monkeypatch, fake_db):
+def test_new_patient_lands_on_overview_with_banner(client, monkeypatch, fake_db):
     response = post_patient(client, lang="fr")
     assert "lang=fr" in response.headers["Location"]
     monkeypatch.setattr(app_module, "get_visible_patients", lambda: [(99, "Neu"), (1, "Demo")])
+    monkeypatch.setattr(app_module, "get_birth_year", lambda pid: 1975)
     html = client.get(response.headers["Location"]).get_data(as_text=True)
-    assert "remplir le questionnaire" in html and "Étape 1" in html
-    assert 'name="patient_id" value="99"' in html
+    assert "success-box" in html.split("</style>")[-1] and "/screening?patient=99" in html
 
 
 def test_risk_page_without_new_flag_has_no_banner(client):
@@ -696,7 +696,7 @@ def test_stranger_cannot_calculate_for_foreign_patient(visitor, all_data, fake_r
 
 
 def test_new_patient_becomes_own(visitor, fake_db):
-    visitor.post("/add", data={"name": "A", "diagnosis": "Asthma", "category": "Pulmonology"})
+    visitor.post("/add", data={"name": "A", "diagnosis": "Asthma", "category": "Pulmonology", "birth_year": "1975"})
     with visitor.session_transaction() as s:
         assert s["own_patients"] == [99]
 
@@ -1016,7 +1016,7 @@ def test_new_patient_form_asks_for_invented_data(client, lang, expected):
 
 def test_email_address_as_name_is_rejected(client, fake_db):
     response = client.post("/add", data={"name": "someone@uni-example.de", "diagnosis": "Asthma",
-                                         "category": "Pulmonology"})
+                                         "category": "Pulmonology", "birth_year": "1975"})
     assert response.status_code == 400 and fake_db == []
     assert "e-mail address" in response.get_data(as_text=True)
 
@@ -1461,3 +1461,160 @@ def test_every_language_shows_the_name_and_tagline_on_home(client, fake_home):
         html = client.get(f"/?lang={lang}").get_data(as_text=True)
         assert ("<title>فهّمني</title>" if lang == "ar" else "<title>Fahemni</title>") in html and tagline in html
         assert "MediLink" not in html and "MédiLien" not in html and "Med4All" not in html
+
+
+# ---------- Birth year, "no known diagnosis", start page (age timeline + cards) ----------
+import datetime
+import eligibility
+from validation import validate_patient
+
+THIS_YEAR = datetime.date.today().year
+
+
+def _fields(**over):
+    data = {"name": "A", "diagnosis": "Asthma", "category": "Pulmonology", "birth_year": "1975"}
+    data.update(over)
+    return data
+
+
+@pytest.mark.parametrize("value", ["", "abc", "75", "19750", "1899", str(THIS_YEAR + 1), "-1975", "19.5"])
+def test_birth_year_must_be_a_plausible_four_digit_year(client, fake_db, value):
+    response = client.post("/add", data=_fields(birth_year=value))
+    assert response.status_code == 400 and fake_db == []
+    assert "year of birth" in response.get_data(as_text=True).lower()
+
+
+def test_birth_year_is_saved_with_the_patient(client, monkeypatch):
+    saved = []
+    monkeypatch.setattr(app_module, "add_patient", lambda name, text, year=None: saved.append(year) or 99)
+    monkeypatch.setattr(app_module, "add_condition", lambda *a: None)
+    assert client.post("/add", data=_fields()).status_code == 302
+    assert saved == [1975]
+
+
+def test_no_known_diagnosis_is_valid_and_needs_no_category(client, monkeypatch):
+    conditions = []
+    monkeypatch.setattr(app_module, "add_patient", lambda name, text, year=None: 99)
+    monkeypatch.setattr(app_module, "add_condition", lambda *a: conditions.append(a))
+    response = client.post("/add", data={"name": "A", "diagnosis": "__none__", "birth_year": "1980"})
+    assert response.status_code == 302 and conditions == []      # no condition row at all
+
+
+def test_no_diagnosis_choice_is_in_the_form_in_every_language(client):
+    for lang, text in (("de", "Keine Diagnose bekannt"), ("en", "No diagnosis known"),
+                       ("fr", "Aucun diagnostic connu"), ("ar", "لا يوجد تشخيص معروف")):
+        html = client.get(f"/new?lang={lang}").get_data(as_text=True)
+        assert 'value="__none__"' in html and text in html and 'name="birth_year"' in html
+
+
+def test_category_is_still_required_with_a_diagnosis(client, fake_db):
+    data = _fields()
+    del data["category"]
+    assert client.post("/add", data=data).status_code == 400
+
+
+def test_validate_patient_none_diagnosis_values():
+    values, errors = validate_patient({"name": "A", "diagnosis": "__none__", "birth_year": "1980"}, texts["en"])
+    assert errors == {} and values["diagnosis"] == "" and values["category"] == ""
+
+
+@pytest.mark.parametrize("age,screening,framingham", [
+    # only the year is known: the true age is the estimate or one less; the forms check the exact age
+    (17, "age", "age"), (18, "open", "age"), (29, "open", "age"), (30, "open", "open"),
+    (40, "open", "open"), (79, "open", "open"), (80, "open", "open"), (81, "open", "age"),
+    (101, "open", "age"), (102, "age", "age"),
+])
+def test_eligibility_by_age(age, screening, framingham):
+    state = eligibility.tools(THIS_YEAR - age)
+    assert (state["screening"], state["framingham"]) == (screening, framingham), age
+
+
+def test_eligibility_boundaries_are_exact_for_clear_cases():
+    assert eligibility.tools(THIS_YEAR - 25)["framingham"] == "age"
+    assert eligibility.tools(THIS_YEAR - 85)["framingham"] == "age"
+    assert eligibility.tools(THIS_YEAR - 12)["any"] is False
+    assert eligibility.tools(THIS_YEAR - 105)["any"] is False
+
+
+def test_eligibility_diagnosis_closes_framingham_only():
+    state = eligibility.tools(THIS_YEAR - 55, ["Diabetes mellitus"])
+    assert state["framingham"] == "diagnosis" and state["screening"] == "open"
+    assert eligibility.tools(THIS_YEAR - 55, ["Asthma"])["framingham"] == "open"
+
+
+def test_eligibility_unknown_year():
+    state = eligibility.tools(None)
+    assert state["age"] is None and state["screening"] == "unknown" and state["any"] is False
+
+
+@pytest.fixture
+def start_env(monkeypatch):
+    monkeypatch.setattr(app_module, "get_visible_patients", lambda: [(5, "Sam")])
+    years = {"year": THIS_YEAR - 51}
+    monkeypatch.setattr(app_module, "get_birth_year", lambda pid: years["year"])
+    return years
+
+
+def test_start_page_open_tools(client, start_env):
+    html = client.get("/patient/5/start?lang=fr").get_data(as_text=True)
+    assert "51 ans" in html and 'class="frise"' in html
+    assert "/risk?patient=5" in html and "/screening?patient=5" in html and "/glossary?lang=fr" in html
+    assert 'class="st-card closed"' not in html
+
+
+def test_start_page_young_patient_is_accepted_but_heart_risk_is_closed(client, start_env):
+    start_env["year"] = THIS_YEAR - 22
+    html = client.get("/patient/5/start?lang=en").get_data(as_text=True)
+    assert "/risk?patient=5" not in html and "/screening?patient=5" in html
+    assert "For ages 30 to 79" in html and "not available" in html
+
+
+def test_start_page_child_gets_the_talk_to_your_doctor_message(client, start_env):
+    start_env["year"] = THIS_YEAR - 9
+    html = client.get("/patient/5/start?lang=en").get_data(as_text=True)
+    assert "talk to your doctor" in html.lower()
+    assert "/risk?patient=5" not in html and "/screening?patient=5" not in html and "/glossary" in html
+
+
+def test_start_page_known_heart_disease_closes_heart_risk_with_reason(client, start_env, monkeypatch):
+    monkeypatch.setattr(app_module, "get_conditions", lambda pid: ["Myocardial infarction"])
+    html = client.get("/patient/5/start?lang=en").get_data(as_text=True)
+    assert "/risk?patient=5" not in html and "Not with a known heart disease or diabetes" in html
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_start_page_in_every_language(client, start_env, lang):
+    html = client.get(f"/patient/5/start?lang={lang}").get_data(as_text=True)
+    assert texts[lang]["st_title"] in html and texts[lang]["st_card_words"] in html
+    assert "{" not in texts[lang]["st_title"]
+
+
+def test_start_page_for_old_patient_asks_for_the_year(client, start_env):
+    start_env["year"] = None
+    html = client.get("/patient/5/start?lang=en").get_data(as_text=True)
+    assert 'action="/patient/5/birth-year"' in html and 'class="frise"' not in html
+
+
+def test_birth_year_can_be_added_later(client, start_env, monkeypatch):
+    saved = []
+    monkeypatch.setattr(app_module, "set_birth_year", lambda pid, year: saved.append((pid, year)))
+    response = client.post("/patient/5/birth-year", data={"birth_year": "1960", "lang": "de"})
+    assert response.status_code == 302 and saved == [(5, 1960)]
+    bad = client.post("/patient/5/birth-year", data={"birth_year": "60"})
+    assert bad.status_code == 400 and saved == [(5, 1960)]
+
+
+def test_stranger_cannot_open_foreign_start_page(visitor):
+    assert visitor.get("/patient/5/start").status_code == 404
+    assert visitor.post("/patient/5/birth-year", data={"birth_year": "1960"}).status_code == 404
+
+
+def test_age_is_prefilled_in_questionnaire_and_risk_form(client, start_env):
+    for url in ("/screening?patient=5", "/risk?patient=5"):
+        html = client.get(url).get_data(as_text=True)
+        assert 'value="51"' in html, url
+
+
+def test_home_links_to_the_overview_and_says_no_diagnosis_known(client, fake_home):
+    html = client.get("/?lang=en").get_data(as_text=True)
+    assert "/patient/1/start?lang=en" in html and "No diagnosis known" in html

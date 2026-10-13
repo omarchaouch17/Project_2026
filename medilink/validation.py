@@ -6,7 +6,8 @@ import math
 
 import units
 from risk import RANGES
-from translations import CATEGORIES, DIAGNOSES, OTHER
+import eligibility
+from translations import CATEGORIES, DIAGNOSES, OTHER, NONE_DIAGNOSIS
 
 SMOKING_STATUS = ("never", "former", "current")
 CIGARETTES_RANGE = (1, 100)   # cigarettes per day (average), only for current smokers
@@ -141,14 +142,29 @@ def validate_patient(form, t):
             errors["diagnosis_free"] = t["err_long"].format(label=labels["free"], max=80)
         else:
             values["diagnosis"] = free
+    elif choice == NONE_DIAGNOSIS:
+        values["diagnosis"] = ""          # nothing is stored: the patient simply has no condition row
     elif choice in DIAGNOSES:
         values["diagnosis"] = choice
     else:
         errors["diagnosis"] = t["err_choose"].format(label=labels["diagnosis"])
 
     # Category: only values from the list are allowed
+    # (not asked when there is no known diagnosis)
     category = form.get("category", "")
-    if category not in CATEGORIES:
+    if choice == NONE_DIAGNOSIS:
+        category = ""
+    elif category not in CATEGORIES:
         errors["category"] = t["err_choose"].format(label=labels["category"])
     values["category"] = category
+
+    values["birth_year_text"] = form.get("birth_year", "").strip()
+    values["birth_year"] = eligibility.parse_birth_year(values["birth_year_text"])
+    if values["birth_year"] is None:
+        errors["birth_year"] = birth_year_error(t)
     return values, errors
+
+
+def birth_year_error(t):
+    low, high = eligibility.birth_year_range()
+    return t["err_birth_year"].format(low=low, high=high)

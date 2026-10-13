@@ -10,20 +10,21 @@ from fhir_db import (
     save_risk, get_latest_risk, get_all_risks,
     count_visit, get_statistics, get_all_entries,
     get_patients_with_conditions, get_all_patients, get_conditions,
-    save_screening, get_latest_screening
+    save_screening, get_latest_screening, get_birth_year, set_birth_year
 )
 import screening as screening_logic
 import units
 import medical_glossary
+import eligibility
 from translations import (
-    texts, translate_diagnosis, category_name, CATEGORIES, DIAGNOSES, OTHER, excludes_framingham
+    texts, translate_diagnosis, category_name, CATEGORIES, DIAGNOSES, OTHER, NONE_DIAGNOSIS, excludes_framingham
 )
 from risk import framingham
 from advice import risk_category, get_tips
 import assistant
 import faq
 from validation import (
-    RISK_FIELDS, validate_risk, validate_patient
+    RISK_FIELDS, validate_risk, validate_patient, birth_year_error
 )
 
 DEFAULT_LANGUAGE = "en"
@@ -35,7 +36,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "medilink-for-local-tests-only")
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
                   PERMANENT_SESSION_LIFETIME=timedelta(days=365))
 app.jinja_env.globals.update(category_name=category_name,
-                             diagnosis_name=translate_diagnosis, OTHER=OTHER)
+                             diagnosis_name=translate_diagnosis, OTHER=OTHER, NONE_DIAGNOSIS=NONE_DIAGNOSIS)
 
 # Create the tables at start-up (important on Render: there is no ready-made database there).
 # Data saved by the old German version is migrated automatically.
@@ -184,12 +185,45 @@ def create_patient():
                                categories=CATEGORIES, diagnoses=DIAGNOSES,
                                language_path="/new"), 400
 
-    patient_id = add_patient(values["name"], "see conditions")
-    add_condition(patient_id, values["diagnosis"], values["category"])
+    patient_id = add_patient(values["name"], "see conditions", values["birth_year"])
+    if values["diagnosis"]:                      # "no known diagnosis" = no condition row
+        add_condition(patient_id, values["diagnosis"], values["category"])
 
     remember_patient(patient_id)
-    # Step 1 comes first: the questionnaire (the score only follows if no high-risk condition is found)
-    return redirect(url_for("screening_form", patient=patient_id, new=1, lang=current_language()))
+    # The overview shows which tools fit the age; the questionnaire (step 1) is reachable from there
+    return redirect(url_for("start_page", patient_id=patient_id, new=1, lang=current_language()))
+
+
+@app.route("/patient/<int:patient_id>/start")
+def start_page(patient_id):
+    """Age timeline + cards: what is open for this person. The patient is always accepted."""
+    if not can_see(patient_id):
+        abort(404)
+    name = dict(get_visible_patients()).get(patient_id)
+    if name is None:
+        abort(404)
+    year = get_birth_year(patient_id)
+    state = eligibility.tools(year, get_conditions(patient_id))
+    return render_template("start.html", patient_id=patient_id, name=name, year=year, state=state,
+                           just_saved=bool(request.args.get("new")),
+                           language_path=f"/patient/{patient_id}/start")
+
+
+@app.route("/patient/<int:patient_id>/birth-year", methods=["POST"])
+def save_birth_year(patient_id):
+    """For patients saved before the birth year existed."""
+    if not can_see(patient_id):
+        abort(404)
+    year = eligibility.parse_birth_year(request.form.get("birth_year", ""))
+    if year is None:
+        t = texts[current_language()]
+        name = dict(get_visible_patients()).get(patient_id, "")
+        return render_template("start.html", patient_id=patient_id, name=name, year=None,
+                               state=eligibility.tools(None), just_saved=False,
+                               year_error=birth_year_error(t),
+                               language_path=f"/patient/{patient_id}/start"), 400
+    set_birth_year(patient_id, year)
+    return redirect(url_for("start_page", patient_id=patient_id, lang=current_language()))
 
 
 @app.route("/delete/<int:patient_id>", methods=["POST"])
@@ -236,8 +270,12 @@ def risk_form():
     if patient.isdigit() and int(patient) in dict(get_visible_patients()) \
             and get_latest_screening(int(patient)) is None:
         return redirect(url_for("screening_form", patient=patient, lang=current_language()))
-    return _risk_page({"patient_id": request.args.get("patient", "")}, {},
-                      just_saved=bool(request.args.get("new")))
+    values = {"patient_id": request.args.get("patient", "")}
+    if patient.isdigit() and int(patient) in dict(get_visible_patients()):
+        age = eligibility.age_from(get_birth_year(int(patient)))
+        if age:
+            values["age"] = age
+    return _risk_page(values, {}, just_saved=bool(request.args.get("new")))
 
 
 @app.route("/calculate_risk", methods=["POST"])
@@ -313,7 +351,9 @@ def screening_form():
     names = dict(get_visible_patients())
     if not patient.isdigit() or int(patient) not in names:
         return redirect(url_for("home", lang=current_language()))
-    return _screening_page(int(patient), names[int(patient)], {}, {}, just_saved=bool(request.args.get("new")))
+    age = eligibility.age_from(get_birth_year(int(patient)))
+    return _screening_page(int(patient), names[int(patient)], {"age": age} if age else {}, {},
+                           just_saved=bool(request.args.get("new")))
 
 
 @app.route("/screening", methods=["POST"])

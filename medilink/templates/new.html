@@ -15,9 +15,19 @@
     </div>
 
     <div class="field">
+        <label for="birth_year">{{ t.new_birth_year }}</label>
+        <input type="number" id="birth_year" name="birth_year" inputmode="numeric" min="1900" max="2100"
+               autocomplete="off" value="{{ values.get('birth_year_text', '') }}"
+               aria-describedby="by-hint" {% if errors.get('birth_year') %}class="invalid"{% endif %}>
+        <div class="hint" id="by-hint">{{ t.new_birth_year_hint }}</div>
+        <div class="error" role="alert">{{ errors.get('birth_year', '') }}</div>
+    </div>
+
+    <div class="field">
         <label for="diagnosis">{{ t.new_diagnosis }}</label>
         <select id="diagnosis" name="diagnosis" {% if errors.get('diagnosis') %}class="invalid"{% endif %}>
             <option value="" disabled {% if not values.get('diagnosis_choice') %}selected{% endif %}>{{ t.choose }}</option>
+            <option value="{{ NONE_DIAGNOSIS }}" {% if values.get('diagnosis_choice') == NONE_DIAGNOSIS %}selected{% endif %}>{{ t.new_none }}</option>
             {% for d in diagnoses %}
             <option value="{{ d }}" {% if values.get('diagnosis_choice') == d %}selected{% endif %}>{{ diagnosis_name(d, lang) }}</option>
             {% endfor %}
@@ -33,7 +43,7 @@
         <div class="error" role="alert">{{ errors.get('diagnosis_free', '') }}</div>
     </div>
 
-    <div class="field">
+    <div class="field" id="category-box">
         <label for="category">{{ t.new_category }}</label>
         <select id="category" name="category" {% if errors.get('category') %}class="invalid"{% endif %}>
             <option value="" disabled {% if not values.get('category') %}selected{% endif %}>{{ t.choose }}</option>
@@ -52,7 +62,11 @@
 // The free text field only shows when "Other" is chosen (without JavaScript it stays visible).
 (function () {
     var select = document.getElementById('diagnosis'), box = document.getElementById('free-box');
-    function toggle() { box.style.display = (select.value === {{ OTHER|tojson }}) ? '' : 'none'; }
+    var categoryBox = document.getElementById('category-box');
+    function toggle() {
+        box.style.display = (select.value === {{ OTHER|tojson }}) ? '' : 'none';
+        categoryBox.style.display = (select.value === {{ NONE_DIAGNOSIS|tojson }}) ? 'none' : '';   // no category without a diagnosis
+    }
     select.addEventListener('change', toggle);
     toggle();
 })();

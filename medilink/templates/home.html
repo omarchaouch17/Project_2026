@@ -112,6 +112,7 @@
     <span style="color:var(--warn); font-weight:700;"> | {{ t.risk_label }}: {{ patient.risk[0] }}% ({{ patient.risk[1] }})</span>
     {% endif %}
 {% if patient.can_view %}
+    <a href="/patient/{{ patient_id }}/start?lang={{ lang }}" style="color:var(--link);">{{ t.start_link }}</a>
     <a href="/history/{{ patient_id }}?lang={{ lang }}" style="color:var(--link);">{{ t.history_link }}</a>
 
     <form action="/delete/{{ patient_id }}" method="POST"

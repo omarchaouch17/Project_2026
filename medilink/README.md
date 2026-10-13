@@ -91,3 +91,15 @@ and gets the explanation in the page language plus the other three languages. Th
 ## Name
 The project is called Fahemni (Tunisian Arabic فهّمني, "make me understand", tagline "Les mots de la santé, pour tous").
 It was first called MediLink and then Fahemni; both names are already used by other products. The GitHub folder and the Render address still contain "medilink" for now.
+
+
+## Year of birth, "no known diagnosis" and the overview page
+
+* The "New patient" form asks for the **year of birth** (four digits) and offers **"No diagnosis known"** as a normal choice
+  (no condition row is stored, no category is asked). With a diagnosis the category is still required.
+* After saving, the **overview page** (`/patient/<id>/start`) shows an age timeline (0-100) with the person's marker and three cards:
+  heart risk (Framingham, 30-79 years, not with a known heart disease or diabetes), screening questionnaire (18-100 years) and medical words.
+  A card that does not fit is greyed out with its reason. The patient is **always accepted**; only the tools are limited.
+* Only the year is stored, so the age is an estimate (year difference or one less). The forms still check the exact age.
+* Older patients without a year are asked for it on the overview page (`ALTER TABLE ... ADD COLUMN birth_year` runs at start-up).
+* Arabic texts of this page need a native-speaker check.

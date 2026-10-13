@@ -52,6 +52,7 @@ def excludes_framingham(diagnosis_text):
     return any(word in text for word in _EXCLUDED_WORDS)
 
 
+NONE_DIAGNOSIS = "__none__"   # value of the option "No known diagnosis" (nothing is stored)
 OTHER = "__other__"   # value of the option "Other (type it yourself)"
 
 # Rows saved before the switch to English contain the German name -> map them to the English name.
@@ -60,7 +61,7 @@ LEGACY_DIAGNOSES = {entry["de"].lower(): name for name, entry in DIAGNOSIS_TRANS
 texts = {
     "de": {
         "title": "Fahemni", "patients": "Patienten", "diagnosis": "Diagnose",
-        "no_diagnosis": "Keine Diagnose",
+        "no_diagnosis": "Keine Diagnose bekannt",
         "new_patient_link": "+ Neuen Patienten hinzufügen",
         "risk_link": "❤ Herzrisiko berechnen",
         "history_link": "[Verlauf]", "delete": "[löschen]",
@@ -164,7 +165,7 @@ texts = {
     },
     "en": {
         "title": "Fahemni", "patients": "Patients", "diagnosis": "Diagnosis",
-        "no_diagnosis": "No diagnosis",
+        "no_diagnosis": "No diagnosis known",
         "new_patient_link": "+ Add new patient",
         "risk_link": "❤ Calculate heart risk",
         "history_link": "[History]", "delete": "[delete]",
@@ -268,7 +269,7 @@ texts = {
     },
     "fr": {
         "title": "Fahemni", "patients": "Patients", "diagnosis": "Diagnostic",
-        "no_diagnosis": "Aucun diagnostic",
+        "no_diagnosis": "Aucun diagnostic connu",
         "new_patient_link": "+ Ajouter un patient",
         "risk_link": "❤ Calculer le risque cardiaque",
         "history_link": "[Historique]", "delete": "[supprimer]",
@@ -372,7 +373,7 @@ texts = {
     },
     "ar": {
         "title": "فهّمني", "patients": "المرضى", "diagnosis": "التشخيص",
-        "no_diagnosis": "لا يوجد تشخيص",
+        "no_diagnosis": "لا يوجد تشخيص معروف",
         "new_patient_link": "+ إضافة مريض جديد",
         "risk_link": "❤ حساب خطر القلب",
         "history_link": "[السجل]", "delete": "[حذف]",
@@ -539,4 +540,9 @@ for _lang, _extra in SCREENING_TEXTS.items():
 # Labels of the accessibility buttons (text size, light/dark)
 from ui_texts import UI_TEXTS  # noqa: E402
 for _lang, _extra in UI_TEXTS.items():
+    texts[_lang].update(_extra)
+
+# Birth year, "no known diagnosis", start page with the age timeline
+from start_texts import START_TEXTS  # noqa: E402
+for _lang, _extra in START_TEXTS.items():
     texts[_lang].update(_extra)

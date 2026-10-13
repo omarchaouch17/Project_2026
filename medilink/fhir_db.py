@@ -15,7 +15,8 @@ def _patients_ddl():
         CREATE TABLE IF NOT EXISTS patients (
             id {db.id_column()},
             name TEXT,
-            diagnosis TEXT
+            diagnosis TEXT,
+            birth_year INTEGER
         )
     """
 
@@ -24,8 +25,24 @@ def create_patients_table():
     db.execute(_patients_ddl())
 
 
-def add_patient(name, diagnosis):
-    return db.insert("INSERT INTO patients (name, diagnosis) VALUES (?, ?)", (name, diagnosis))
+def add_patient(name, diagnosis, birth_year=None):
+    return db.insert("INSERT INTO patients (name, diagnosis, birth_year) VALUES (?, ?, ?)",
+                     (name, diagnosis, birth_year))
+
+
+def ensure_birth_year_column():
+    """Older databases have no birth_year column yet: add it (existing patients keep NULL = unknown)."""
+    if db.table_exists("patients") and "birth_year" not in db.columns("patients"):
+        db.execute("ALTER TABLE patients ADD COLUMN birth_year INTEGER")
+
+
+def get_birth_year(patient_id):
+    rows = db.query("SELECT birth_year FROM patients WHERE id = ?", (patient_id,))
+    return rows[0][0] if rows and rows[0][0] else None
+
+
+def set_birth_year(patient_id, birth_year):
+    db.execute("UPDATE patients SET birth_year = ? WHERE id = ?", (birth_year, patient_id))
 
 
 def _conditions_ddl():
@@ -280,9 +297,11 @@ def create_all_tables():
     if db.table_exists("patienten"):
         migrate_german_schema()
         create_screenings_table()
+        ensure_birth_year_column()
         return
     create_patients_table()
     create_conditions_table()
     create_risk_scores_table()
     create_visits_table()
     create_screenings_table()
+    ensure_birth_year_column()

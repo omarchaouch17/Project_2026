@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fahemni</title>
+<style>
+  :root { --bg:#0f172a; --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center;
+         justify-content:center; background:var(--bg); color:var(--text);
+         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding:16px; text-align:center; }
+  h1 { color:var(--accent); margin:0 0 28px; font-size:2rem; }
+  .arc-wrap { position:relative; width:240px; height:240px; display:flex; align-items:center; justify-content:center; }
+  /* half circle: only two borders are coloured */
+  .arc { position:absolute; inset:0; border-radius:50%; border:6px solid transparent;
+         border-top-color:var(--accent); border-left-color:var(--accent);
+         animation: spin 2.4s linear infinite; }
+  .arc.second { inset:14px; border-top-color:transparent; border-left-color:transparent;
+         border-bottom-color:#7dd3fc88; border-right-color:#7dd3fc88; animation-duration:3.6s; animation-direction:reverse; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #word { font-size:1.5rem; font-weight:600; transition: opacity .35s ease; min-height:2.2em; display:flex; align-items:center; }
+  #word.hide { opacity:0; }
+  #status { margin-top:26px; color:var(--muted); max-width:34ch; line-height:1.5; min-height:3em; }
+  .langs { margin-top:14px; font-size:.85rem; color:var(--muted); letter-spacing:.08em; }
+  .langs b { color:var(--accent); }
+  @media (prefers-reduced-motion: reduce) { .arc { animation:none; } #word { transition:none; } }
+</style>
+</head>
+<body>
+  <h1>Fahemni</h1>
+  <div class="arc-wrap" aria-hidden="true">
+    <div class="arc"></div><div class="arc second"></div>
+    <div id="word" lang="en">Welcome</div>
+  </div>
+  <p id="status" role="status">The server is waking up – this takes up to a minute.</p>
+  <div class="langs" id="langs" aria-hidden="true"></div>
+<script>
+(function () {
+  // The real application (Render free tier sleeps when nobody visits it).
+  var APP = "https://medilink-trbk.onrender.com";
+  var STEPS = [
+    { code: "EN", lang: "en", dir: "ltr", word: "Welcome",    text: "The server is waking up – this takes up to a minute." },
+    { code: "DE", lang: "de", dir: "ltr", word: "Willkommen", text: "Der Server wacht gerade auf – das dauert bis zu einer Minute." },
+    { code: "FR", lang: "fr", dir: "ltr", word: "Bienvenue",  text: "Le serveur se réveille – cela peut prendre jusqu'à une minute." },
+    { code: "AR", lang: "ar", dir: "rtl", word: "مرحباً",      text: "الخادم يستيقظ الآن – قد يستغرق ذلك حتى دقيقة." }
+  ];
+  var word = document.getElementById("word");
+  var status = document.getElementById("status");
+  var langs = document.getElementById("langs");
+  var index = 0;
+
+  function paintLangs() {
+    langs.innerHTML = STEPS.map(function (s, i) { return i === index ? "<b>" + s.code + "</b>" : s.code; }).join(" · ");
+  }
+  function show(i) {
+    var s = STEPS[i];
+    word.classList.add("hide");
+    setTimeout(function () {
+      word.textContent = s.word; word.lang = s.lang; word.dir = s.dir;
+      status.textContent = s.text; status.lang = s.lang; status.dir = s.dir;
+      word.classList.remove("hide");
+      paintLangs();
+    }, 350);
+  }
+  // The arc needs 1.2 s for a half turn: after each half turn the next language appears.
+  paintLangs();
+  setInterval(function () { index = (index + 1) % STEPS.length; show(index); }, 1200);
+
+  // Wake-up ping. /health sends a CORS header; the "server is starting" page of the host does not,
+  // so it can never be mistaken for the real application.
+  function ping() {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 8000);
+    fetch(APP + "/health", { cache: "no-store", signal: controller.signal })
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
+      .then(function (body) { if (body !== "ok") { throw 0; } clearTimeout(timer); window.location.replace(APP); })
+      .catch(function () { clearTimeout(timer); setTimeout(ping, 2500); });
+  }
+  ping();
+})();
+</script>
+</body>
+</html>

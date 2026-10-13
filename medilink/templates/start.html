@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% set age = state.age %}
+<style>
+    .st-wrap { width: min(640px, 100%); margin: 0 auto; text-align: start; }
+    .st-sub { color: var(--muted); margin: 0 0 18px; }
+    .frise { direction: ltr; position: relative; height: 188px; margin: 8px 0 6px; }
+    .frise .axis { position: absolute; z-index: 1; left: 0; right: 0; top: 56px; height: 2px; background: var(--border); }
+    .frise .tick { position: absolute; top: 62px; transform: translateX(-50%); font-size: .8rem; color: var(--muted); }
+    .frise .lab { position: absolute; left: 0; z-index: 1; font-size: .85rem; color: var(--muted); background: var(--bg); padding-right: 6px; }
+    .frise .bar { position: absolute; height: 30px; border-radius: 15px; box-sizing: border-box; text-align: center; z-index: 1;
+                  line-height: 26px; font-size: .9rem; font-weight: 700; white-space: nowrap; overflow: hidden; }
+    .frise .b-scr { background: var(--soft); color: var(--text); border: 2px solid var(--accent); }
+    .frise .b-fra { background: var(--accent); color: var(--btn-text); border: 2px solid var(--accent); }
+    .frise .pin { position: absolute; top: 0; bottom: 0; width: 0; left: calc(var(--p) * 1%); z-index: 0;
+                  border-left: 2px dotted var(--border); animation: pin-slide .9s ease-out both; }
+    .frise .pin::before { content: ""; position: absolute; top: 0; height: 58px; left: -2px; border-left: 3px solid var(--text); }
+    .frise .pin::after { content: ""; position: absolute; top: 52px; left: -7px; width: 12px; height: 12px; border-radius: 50%;
+                         background: var(--text); }
+    .frise .pin b { position: absolute; top: -2px; left: 0; transform: translateX(-50%); background: var(--text); color: var(--bg);
+                    border-radius: 14px; padding: 2px 12px; font-size: .95rem; white-space: nowrap; }
+    @keyframes pin-slide { from { left: 0; } }
+    .st-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 18px; }
+    .st-card { display: block; box-sizing: border-box; min-height: 150px; padding: 16px; border-radius: 10px; text-decoration: none;
+               background: var(--card); border: 2px solid var(--accent); color: var(--text) !important; }
+    .st-card svg { width: 38px; height: 38px; display: block; margin-bottom: 8px; stroke: var(--accent); fill: none; stroke-width: 2;
+                   stroke-linecap: round; stroke-linejoin: round; }
+    .st-card strong { display: block; font-size: 1.05rem; margin-bottom: 4px; }
+    .st-card .go { color: var(--link); font-weight: 700; }
+    .st-card.closed { border: 2px dashed var(--border); background: transparent; color: var(--muted) !important; }
+    .st-card.closed svg { stroke: var(--muted); }
+    .st-card .why { font-size: .9rem; color: var(--muted); }
+    .st-note { margin-top: 14px; color: var(--muted); font-size: .9rem; }
+    .st-box { padding: 14px 16px; border: 2px solid var(--border); border-radius: 10px; margin-top: 16px; }
+    @media (prefers-reduced-motion: reduce) { .frise .pin { animation: none; } }
+</style>
+<div class="st-wrap">
+{% if just_saved %}<div class="success-box" role="status">✓ {{ t.saved }}</div>{% endif %}
+<h1>{{ t.st_title }}</h1>
+
+{% if age is none %}
+    <p class="st-sub"><strong>{{ name }}</strong></p>
+    <div class="st-box">
+        <h2 style="margin-top:0">{{ t.st_year_title }}</h2>
+        <p>{{ t.st_year_intro }}</p>
+        <form action="/patient/{{ patient_id }}/birth-year" method="POST" novalidate>
+            <input type="hidden" name="lang" value="{{ lang }}">
+            <div class="field">
+                <label for="birth_year">{{ t.new_birth_year }}</label>
+                <input type="number" id="birth_year" name="birth_year" inputmode="numeric" min="1900" max="2100" autocomplete="off"
+                       {% if year_error %}class="invalid"{% endif %}>
+                <div class="hint">{{ t.new_birth_year_hint }}</div>
+                <div class="error" role="alert">{{ year_error or '' }}</div>
+            </div>
+            <button type="submit">{{ t.st_year_button }}</button>
+        </form>
+    </div>
+{% else %}
+    <p class="st-sub"><strong>{{ name }}</strong> · {{ t.st_born.format(year=year, age=age) }}</p>
+
+    {% set pos = [[age, 0]|max, 100]|min %}
+    <div class="frise" role="img"
+         aria-label="{{ t.st_axis }}: {{ t.st_you.format(age=age) }}. {{ t.st_bar_screening }}: {{ t.st_why_age_screening }}. {{ t.st_bar_framingham }}: {{ t.st_why_age_heart }}.">
+        <div class="axis"></div>
+        {% for tick in (0, 20, 40, 60, 80, 100) %}<span class="tick" style="left:{{ tick }}%">{{ tick }}</span>{% endfor %}
+        <span class="lab" style="top:86px">{{ t.st_bar_screening }}</span>
+        <div class="bar b-scr" style="top:106px; left:18%; width:82%">18 – 100</div>
+        <span class="lab" style="top:140px">{{ t.st_bar_framingham }}</span>
+        <div class="bar b-fra" style="top:160px; left:30%; width:50%">30 – 79</div>
+        <div class="pin" style="--p:{{ pos }}"><b>{{ t.st_you.format(age=age) }}</b></div>
+    </div>
+
+    {% if not state.any %}<p class="error-box" role="status">{{ t.st_none_open }}</p>{% endif %}
+
+    <div class="st-cards">
+        {% if state.framingham == 'open' %}
+        <a class="st-card" href="/risk?patient={{ patient_id }}&lang={{ lang }}">
+        {% else %}<div class="st-card closed" aria-disabled="true">{% endif %}
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C5 15.5 3 12 3 8.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 9 2.5C21 12 19 15.5 12 21z"/></svg>
+            <strong>{{ t.st_card_heart }}</strong>
+            {% if state.framingham == 'open' %}<span class="go">{{ t.st_ok }} →</span>
+            {% else %}<span class="why">{{ t.st_closed }}<br>{{ t.st_why_age_heart if state.framingham == 'age' else t.st_why_diagnosis }}</span>{% endif %}
+        {% if state.framingham == 'open' %}</a>{% else %}</div>{% endif %}
+
+        {% if state.screening == 'open' %}
+        <a class="st-card" href="/screening?patient={{ patient_id }}&lang={{ lang }}">
+        {% else %}<div class="st-card closed" aria-disabled="true">{% endif %}
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h6"/></svg>
+            <strong>{{ t.st_card_screening }}</strong>
+            {% if state.screening == 'open' %}<span class="go">{{ t.st_ok }} →</span>
+            {% else %}<span class="why">{{ t.st_closed }}<br>{{ t.st_why_age_screening }}</span>{% endif %}
+        {% if state.screening == 'open' %}</a>{% else %}</div>{% endif %}
+
+        <a class="st-card" href="/glossary?lang={{ lang }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M9 8h6"/></svg>
+            <strong>{{ t.st_card_words }}</strong>
+            <span class="go">{{ t.st_ok }} →</span>
+        </a>
+    </div>
+    <p class="st-note">{{ t.st_estimate }}</p>
+{% endif %}
+</div>
+<br>
+<a href="/?lang={{ lang }}">{{ t.back }}</a>
+{% endblock %}

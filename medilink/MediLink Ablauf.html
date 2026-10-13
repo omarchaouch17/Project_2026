@@ -1,0 +1,211 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>MediLink Ablauf</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: eine Bühne (SVG) mit vier Stationen, darunter das Schritt-Panel mit Code, deutschem Satz und französischer Erklärung. */
+:root {
+  --bg: #f3f5f7; --surface: #ffffff; --fg: #14202b; --muted: #5b6b7a; --line: #c7d0d8;
+  --accent: #0b6e8f; --accent-soft: #d8eef5; --ok: #1d7a4d; --err: #b3261e; --err-soft: #f9dedc;
+  --code-bg: #eaeff3;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e151c; --surface: #16202a; --fg: #e4ebf1; --muted: #8fa1b1; --line: #2c3a47;
+  --accent: #4cc3e6; --accent-soft: #123846; --ok: #52c88a; --err: #ff8a80; --err-soft: #3b1c1a;
+  --code-bg: #0c1319; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e151c; --surface: #16202a; --fg: #e4ebf1; --muted: #8fa1b1; --line: #2c3a47;
+  --accent: #4cc3e6; --accent-soft: #123846; --ok: #52c88a; --err: #ff8a80; --err-soft: #3b1c1a;
+  --code-bg: #0c1319; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding-block: 20px; padding-inline: 16px; }
+main { max-width: 920px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: 1.5rem; line-height: 1.2; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+figcaption { color: var(--muted); font-size: .85rem; padding: 6px 4px 2px; }
+.stage-wrap { overflow-x: auto; }
+svg { display: block; width: 100%; min-width: 620px; height: auto; color: var(--fg); }
+svg text { font-family: var(--font-body); fill: currentColor; }
+.node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .3s, fill .3s; }
+.node.on rect { stroke: var(--accent); fill: var(--accent-soft); stroke-width: 2.5; }
+.node .t { font-size: 14px; font-weight: 600; }
+.node .s { font-size: 10px; fill: var(--muted); font-family: var(--font-mono); }
+.edge { stroke: var(--line); stroke-width: 2; fill: none; }
+.edge.err { stroke: var(--err); stroke-dasharray: 6 5; opacity: .45; transition: opacity .3s; }
+.edge.err.on { opacity: 1; }
+.errlabel { font-size: 11px; fill: var(--err); }
+#packet { transition: transform .9s cubic-bezier(.5,.1,.3,1); }
+#packet.jump { transition: none; }
+#packet circle { fill: var(--accent); }
+#packet text { font-size: 12px; font-family: var(--font-mono); font-weight: 500; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.dots { display: flex; flex-wrap: wrap; gap: 6px; }
+.dots button { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg);
+  font: inherit; font-size: .85rem; cursor: pointer; }
+.dots button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 600; }
+.dots button.done { border-color: var(--accent); }
+h2 { margin: 0; font-size: 1.15rem; text-wrap: balance; }
+.panel p { margin: 0; }
+pre { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 10px 12px; overflow-x: auto; font-family: var(--font-mono); font-size: .82rem; line-height: 1.5; }
+.say { border-inline-start: 4px solid var(--accent); padding: 4px 12px; }
+.say b { display: block; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.fr { color: var(--muted); }
+.fr b { color: var(--fg); font-weight: 600; }
+.err-note { background: var(--err-soft); color: var(--err); border-radius: 8px; padding: 8px 12px; font-size: .9rem; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.controls button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.controls button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 600; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { #packet { transition: none; } .node rect, .edge.err { transition: none; } }
+</style>
+
+<main>
+  <header>
+    <h1>Was passiert bei „Speichern"?</h1>
+    <p class="sub">Neuen Patienten anlegen in MediLink, Schritt für Schritt. Klicken Sie auf „Weiter" oder „Abspielen".</p>
+  </header>
+
+  <figure>
+    <div class="stage-wrap">
+    <svg viewBox="0 0 850 300" role="img" aria-label="Ablauf beim Speichern eines Patienten: Der Browser sendet POST an die Flask-Route, diese prüft mit validierung.py, schreibt in SQLite, merkt den Patienten in der Session und antwortet mit einem Redirect auf die Risiko-Seite.">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+        <marker id="arrerr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--err)"/></marker>
+      </defs>
+      <!-- Kanten -->
+      <path class="edge" d="M150,175 H240" marker-end="url(#arr)"/>
+      <path class="edge" d="M240,205 H150" marker-end="url(#arr)"/>
+      <path class="edge" d="M380,175 H470" marker-end="url(#arr)"/>
+      <path class="edge" d="M310,110 V75 H770 V110" marker-end="url(#arr)"/>
+      <path class="edge" d="M310,110 V48" marker-end="url(#arr)"/>
+      <path id="errpath" class="edge err" d="M540,220 V268 H80 V222" marker-end="url(#arrerr)"/>
+      <text class="errlabel" x="310" y="286" text-anchor="middle">bei Fehler: Status 400 + rote Meldungen, nichts wird gespeichert</text>
+      <!-- Stationen -->
+      <g class="node" id="n-browser"><rect x="10" y="110" width="140" height="110" rx="10"/><text class="t" x="80" y="134" text-anchor="middle">Browser</text><text class="s" x="80" y="152" text-anchor="middle">Besucher</text></g>
+      <g class="node" id="n-flask"><rect x="240" y="110" width="140" height="110" rx="10"/><text class="t" x="310" y="134" text-anchor="middle">Flask-Route</text><text class="s" x="310" y="152" text-anchor="middle">/hinzufuegen</text></g>
+      <g class="node" id="n-valid"><rect x="470" y="110" width="140" height="110" rx="10"/><text class="t" x="540" y="134" text-anchor="middle">validierung.py</text><text class="s" x="540" y="152" text-anchor="middle">validiere_patient()</text></g>
+      <g class="node" id="n-db"><rect x="700" y="110" width="140" height="110" rx="10"/><text class="t" x="770" y="134" text-anchor="middle">SQLite</text><text class="s" x="770" y="152" text-anchor="middle">patienten · conditions</text></g>
+      <g class="node" id="n-session"><rect x="240" y="8" width="140" height="36" rx="8"/><text class="t" x="310" y="31" text-anchor="middle" style="font-size:13px">Session (Cookie)</text></g>
+      <!-- wandernde Nachricht -->
+      <g id="packet" transform="translate(80,175)"><circle r="8"/><text id="plabel" x="14" y="-10">POST</text></g>
+    </svg>
+    </div>
+    <figcaption>Die Kugel ist die Nachricht. Sie wandert vom Browser über Flask zur Datenbank und zurück; oben liegt die Session, unten der Fehlerweg.</figcaption>
+  </figure>
+
+  <section class="panel" aria-live="polite">
+    <div class="dots" id="dots" role="group" aria-label="Schritte"></div>
+    <h2 id="title"></h2>
+    <p id="text"></p>
+    <div class="err-note" id="errnote" hidden>Wenn die Prüfung fehlschlägt, endet der Ablauf hier: Status 400, das Formular kommt mit roten Meldungen zurück, nichts landet in der Datenbank.</div>
+    <pre id="code"></pre>
+    <div class="say"><b>Auf Deutsch sagen</b><span id="de"></span></div>
+    <p class="fr"><b>En français :</b> <span id="fr"></span></p>
+    <div class="controls">
+      <button id="back">← Zurück</button>
+      <button id="next" class="primary">Weiter →</button>
+      <button id="play">▶ Abspielen</button>
+      <button id="reset">↺ Neu starten</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var STEPS = [
+    { title: "Klick auf „Speichern“", on: ["browser"], from: [80,175], to: [310,175], label: "POST /hinzufuegen", anchor: "start",
+      text: "Der Browser schickt die Formulardaten (Name, Diagnose, Kategorie, Sprache) per POST an die Adresse /hinzufuegen.",
+      code: '<form action="/hinzufuegen" method="POST">\n  name, diagnose, kategorie, lang',
+      de: "Der Browser schickt die Formulardaten per POST an /hinzufuegen.",
+      fr: "Le navigateur envoie les données du formulaire à l'URL /hinzufuegen avec la méthode POST (POST = on envoie des données qui changent quelque chose)." },
+    { title: "Flask nimmt die Anfrage an", on: ["flask"], from: [310,175], to: [310,175], label: "request.form", anchor: "start",
+      text: "Über @app.route findet Flask die passende Funktion hinzufuegen() und liest die Daten aus request.form.",
+      code: '@app.route("/hinzufuegen", methods=["POST"])\ndef hinzufuegen():\n    werte, fehler = validiere_patient(request.form, t)',
+      de: "Flask ordnet die Adresse über @app.route der Funktion hinzufuegen() zu.",
+      fr: "Le décorateur @app.route relie l'URL à la fonction. Les champs envoyés sont lus avec request.form." },
+    { title: "Prüfung auf dem Server", on: ["flask","valid"], from: [310,175], to: [540,175], label: "prüft Eingaben", anchor: "start", err: true,
+      text: "validiere_patient() prüft: Name höchstens 60 Zeichen, Diagnose aus der Liste (oder eigener Text bei „Andere“), Kategorie erlaubt.",
+      code: 'werte, fehler = validiere_patient(request.form, t)\nif fehler:\n    return render_template("neu.html", ...), 400',
+      de: "Die verbindliche Prüfung läuft immer auf dem Server. Das JavaScript im Browser ist nur Komfort.",
+      fr: "La vraie vérification est faite côté serveur, car le navigateur peut être contourné. En cas d'erreur : statut 400 et messages rouges." },
+    { title: "Patient in der Datenbank speichern", on: ["flask","db"], from: [310,75], to: [770,75], label: "INSERT patienten → id", anchor: "end",
+      text: "Die Daten sind gültig. patient_hinzufuegen() schreibt eine Zeile in die Tabelle patienten und gibt die neue ID zurück.",
+      code: 'patient_id = patient_hinzufuegen(werte["name"], "siehe conditions")\n# INSERT INTO patienten (name, diagnose) VALUES (?, ?)',
+      de: "Mit einem parametrisierten INSERT speichere ich den Patienten und bekomme die neue ID zurück.",
+      fr: "Les « ? » sont des requêtes paramétrées : elles protègent contre l'injection SQL. SQLite renvoie l'identifiant du nouveau patient." },
+    { title: "Diagnose speichern", on: ["flask","db"], from: [310,75], to: [770,75], label: "INSERT conditions", anchor: "end",
+      text: "Die Diagnose und die Kategorie kommen in die zweite Tabelle conditions, verknüpft über patient_id (wie bei FHIR: Patient und Condition).",
+      code: 'condition_hinzufuegen(patient_id, werte["diagnose"], werte["kategorie"])\n# INSERT INTO conditions (patient_id, code_text, category_text, ...)',
+      de: "Patient und Diagnose liegen in getrennten Tabellen, verbunden über die patient_id. Das ist an FHIR angelehnt.",
+      fr: "Deux tables reliées par patient_id (clé étrangère) : un patient peut avoir plusieurs diagnostics." },
+    { title: "Besitz merken (Session)", on: ["flask","session"], from: [310,75], to: [310,56], label: "session[\"eigene\"]", anchor: "start",
+      text: "Die App merkt sich in der Session, dass dieser Besucher den Patienten selbst angelegt hat. Das Cookie ist signiert und kann nicht einfach verändert werden.",
+      code: 'merke_patient(patient_id)\n# session["eigene"].append(patient_id)  → signiertes Cookie',
+      de: "Die Patienten-Nummer kommt in die Session. So sieht nur dieser Besucher den Namen, alle anderen sehen „Anonym“.",
+      fr: "C'est ce qui permet l'anonymat : le numéro est stocké dans le cookie signé du visiteur." },
+    { title: "Redirect statt direkter Antwort", on: ["flask","browser"], from: [310,205], to: [80,205], label: "302 → /risiko?patient=7", anchor: "start",
+      text: "Flask antwortet nicht mit einer Seite, sondern mit einer Weiterleitung (Status 302) und setzt das aktualisierte Cookie.",
+      code: 'return redirect(url_for("risiko_formular",\n    patient=patient_id, neu=1, lang=aktuelle_sprache()))',
+      de: "Ich benutze das Post/Redirect/Get-Muster, damit das Formular beim Neuladen nicht doppelt abgeschickt wird.",
+      fr: "Après un POST réussi, on redirige vers une page GET. Recharger la page ne recrée donc pas le patient." },
+    { title: "Der Browser folgt der Weiterleitung", on: ["browser","flask"], from: [80,175], to: [310,175], label: "GET /risiko?patient=7&neu=1", anchor: "start",
+      text: "Der Browser ruft die neue Adresse automatisch per GET auf. Die Parameter stehen in der URL und werden mit request.args gelesen.",
+      code: 'GET /risiko?patient=7&neu=1&lang=de\n\n@app.route("/risiko")\ndef risiko_formular(): request.args.get("patient")',
+      de: "Jetzt ist es ein GET: Die Parameter patient und neu stehen in der URL.",
+      fr: "GET = lecture. Les paramètres de l'URL se lisent avec request.args (alors que les formulaires POST se lisent avec request.form)." },
+    { title: "Risiko-Formular mit Hinweis", on: ["flask","browser"], from: [310,205], to: [80,205], label: "200 OK · risiko.html", anchor: "start",
+      text: "Flask füllt das Jinja2-Template: grüner Hinweis „Patient gespeichert“, der neue Patient ist schon ausgewählt. Der Nutzer kann direkt den Score berechnen.",
+      code: 'render_template("risiko.html", werte={"patient_id": "7"},\n    neu_gespeichert=True, ...)',
+      de: "Der Nutzer landet direkt im Risiko-Formular, der neue Patient ist schon vorausgewählt.",
+      fr: "Jinja2 remplit le HTML avec les variables : bannière verte et patient présélectionné. Fin du parcours." }
+  ];
+
+  var i = 0, timer = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var packet = $("packet"), plabel = $("plabel");
+  var dots = $("dots");
+  STEPS.forEach(function (s, k) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = k + 1; b.setAttribute("aria-label", "Schritt " + (k + 1) + ": " + s.title);
+    b.addEventListener("click", function () { stop(); show(k); });
+    dots.appendChild(b);
+  });
+
+  function place(p) { packet.setAttribute("transform", "translate(" + p[0] + "," + p[1] + ")"); }
+  function show(k) {
+    i = k; var s = STEPS[k];
+    ["browser","flask","valid","db","session"].forEach(function (n) { $("n-" + n).classList.toggle("on", s.on.indexOf(n) > -1); });
+    $("errpath").classList.toggle("on", !!s.err); $("errnote").hidden = !s.err;
+    plabel.textContent = s.label;
+    plabel.setAttribute("text-anchor", s.anchor); plabel.setAttribute("x", s.anchor === "end" ? -14 : 14);
+    packet.classList.add("jump"); packet.style.transform = ""; packet.setAttribute("transform", "translate(" + s.from[0] + "," + s.from[1] + ")");
+    void packet.getBoundingClientRect();
+    packet.classList.remove("jump");
+    requestAnimationFrame(function () { packet.setAttribute("transform", "translate(" + s.to[0] + "," + s.to[1] + ")"); });
+    $("title").textContent = (k + 1) + ". " + s.title; $("text").textContent = s.text;
+    $("code").textContent = s.code; $("de").textContent = "„" + s.de + "“"; $("fr").textContent = s.fr;
+    Array.prototype.forEach.call(dots.children, function (b, j) {
+      b.classList.toggle("done", j < k);
+      if (j === k) { b.setAttribute("aria-current", "step"); } else { b.removeAttribute("aria-current"); }
+    });
+    $("back").disabled = k === 0; $("next").disabled = k === STEPS.length - 1;
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } $("play").textContent = "▶ Abspielen"; }
+  function play() {
+    if (timer) { stop(); return; }
+    if (i === STEPS.length - 1) { show(0); }
+    $("play").textContent = "❚❚ Pause";
+    timer = setInterval(function () { if (i < STEPS.length - 1) { show(i + 1); } else { stop(); } }, 3600);
+  }
+  $("next").addEventListener("click", function () { stop(); if (i < STEPS.length - 1) { show(i + 1); } });
+  $("back").addEventListener("click", function () { stop(); if (i > 0) { show(i - 1); } });
+  $("play").addEventListener("click", play);
+  $("reset").addEventListener("click", function () { stop(); show(0); });
+  show(0);
+})();
+</script>
+
+</body></html>
