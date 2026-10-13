@@ -234,7 +234,7 @@
 
 <body>
     <div class="tools">
-        <button type="button" id="size-toggle" aria-pressed="false">A+ {{ t.ui_text_size }}</button>
+        <button type="button" id="size-toggle" aria-pressed="false" data-bigger="A+ {{ t.ui_text_size }}" data-smaller="A− {{ t.ui_text_smaller }}">A+ {{ t.ui_text_size }}</button>
         <button type="button" id="theme-toggle" aria-pressed="false">{{ t.ui_theme }}</button>
     </div>
     {% if show_languages %}
@@ -250,7 +250,9 @@
             var d = document.documentElement;
             function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
             function sync() {
-                document.getElementById('size-toggle').setAttribute('aria-pressed', d.dataset.size === 'large');
+                var size = document.getElementById('size-toggle'), large = d.dataset.size === 'large';
+                size.setAttribute('aria-pressed', large);
+                size.textContent = large ? size.dataset.smaller : size.dataset.bigger;   // the button names what the next click does
                 document.getElementById('theme-toggle').setAttribute('aria-pressed', d.dataset.theme === 'dark');
             }
             document.getElementById('size-toggle').addEventListener('click', function () {

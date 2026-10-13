@@ -1618,3 +1618,12 @@ def test_age_is_prefilled_in_questionnaire_and_risk_form(client, start_env):
 def test_home_links_to_the_overview_and_says_no_diagnosis_known(client, fake_home):
     html = client.get("/?lang=en").get_data(as_text=True)
     assert "/patient/1/start?lang=en" in html and "No diagnosis known" in html
+
+
+@pytest.mark.parametrize("lang,bigger,smaller", [
+    ("de", "Größere Schrift", "Kleinere Schrift"), ("en", "Larger text", "Smaller text"),
+    ("fr", "Texte plus grand", "Texte plus petit"), ("ar", "نص أكبر", "نص أصغر")])
+def test_text_size_button_names_what_the_next_click_does(client, lang, bigger, smaller):
+    html = client.get(f"/new?lang={lang}").get_data(as_text=True)
+    assert f'data-bigger="A+ {bigger}"' in html and f'data-smaller="A\u2212 {smaller}"'.replace("\\u2212", "\u2212") in html
+    assert "size.textContent = large ? size.dataset.smaller : size.dataset.bigger" in html
