@@ -1,4 +1,4 @@
-"""translations.py - all visible texts of MediLink in EN / DE / FR / AR.
+"""translations.py - all visible texts of Med4All in EN / DE / FR / AR.
 
 Always add new texts in ALL four languages (test_app.py checks this).
 Placeholders such as {label}, {low}, {high}, {p} are filled with str.format().
@@ -59,7 +59,7 @@ LEGACY_DIAGNOSES = {entry["de"].lower(): name for name, entry in DIAGNOSIS_TRANS
 
 texts = {
     "de": {
-        "title": "MediLink", "patients": "Patienten", "diagnosis": "Diagnose",
+        "title": "Med4All", "patients": "Patienten", "diagnosis": "Diagnose",
         "no_diagnosis": "Keine Diagnose",
         "new_patient_link": "+ Neuen Patienten hinzufügen",
         "risk_link": "❤ Herzrisiko berechnen",
@@ -163,7 +163,7 @@ texts = {
         "stat_admin": "Admin-Ansicht: Namen und alle Werte sichtbar.",
     },
     "en": {
-        "title": "MediLink", "patients": "Patients", "diagnosis": "Diagnosis",
+        "title": "Med4All", "patients": "Patients", "diagnosis": "Diagnosis",
         "no_diagnosis": "No diagnosis",
         "new_patient_link": "+ Add new patient",
         "risk_link": "❤ Calculate heart risk",
@@ -267,7 +267,7 @@ texts = {
         "stat_admin": "Admin view: names and all values visible.",
     },
     "fr": {
-        "title": "MédiLien", "patients": "Patients", "diagnosis": "Diagnostic",
+        "title": "Med4All", "patients": "Patients", "diagnosis": "Diagnostic",
         "no_diagnosis": "Aucun diagnostic",
         "new_patient_link": "+ Ajouter un patient",
         "risk_link": "❤ Calculer le risque cardiaque",
@@ -371,7 +371,7 @@ texts = {
         "stat_admin": "Vue admin : noms et toutes les valeurs visibles.",
     },
     "ar": {
-        "title": "رابط طبي", "patients": "المرضى", "diagnosis": "التشخيص",
+        "title": "Med4All", "patients": "المرضى", "diagnosis": "التشخيص",
         "no_diagnosis": "لا يوجد تشخيص",
         "new_patient_link": "+ إضافة مريض جديد",
         "risk_link": "❤ حساب خطر القلب",

@@ -1,6 +1,6 @@
-"""ui_texts.py - labels of the accessibility buttons (text size, light/dark)."""
+"""ui_texts.py - tagline, labels of the accessibility buttons (text size, light/dark) and of the word lookup page."""
 UI_TEXTS = {
-    "de": {"ui_text_size": "Größere Schrift", "ui_theme": "Hell / Dunkel",
+    "de": {"tagline": 'Medizinische Wörter – für alle verständlich', "ui_text_size": "Größere Schrift", "ui_theme": "Hell / Dunkel",
         "gl_link": 'Medizinisches Wort nachschlagen',
         "gl_title": 'Medizinisches Wort nachschlagen',
         "gl_intro": 'Geben Sie ein Wort oder eine Abkürzung aus Ihrem Arztbrief ein (zum Beispiel: Dyspnoe, HTA, LDL). Was Sie eingeben, wird nicht gespeichert.',
@@ -12,7 +12,7 @@ UI_TEXTS = {
         "gl_other": 'Dieselbe Erklärung in anderen Sprachen',
         "gl_disclaimer": 'Dieser Text erklärt nur, was ein Wort bedeutet. Er sagt nicht, ob Ihre Lage ernst ist, und ersetzt keine Ärztin und keinen Arzt. Setzen Sie nie ein Medikament ohne ärztlichen Rat ab und ändern Sie es nicht. Notfall: 112 (Deutschland) · 190 (Tunesien).',
     },
-    "en": {"ui_text_size": "Larger text", "ui_theme": "Light / dark",
+    "en": {"tagline": 'Medical words, for everyone', "ui_text_size": "Larger text", "ui_theme": "Light / dark",
         "gl_link": 'Look up a medical word',
         "gl_title": 'Look up a medical word',
         "gl_intro": "Type a word or an abbreviation from your doctor's letter (for example: dyspnoea, HTA, LDL). What you type is not stored.",
@@ -24,7 +24,7 @@ UI_TEXTS = {
         "gl_other": 'The same explanation in other languages',
         "gl_disclaimer": 'This text only explains what a word means. It does not say whether your situation is serious and does not replace your doctor. Never stop or change a medicine without medical advice. Emergency: 112 (Germany) · 190 (Tunisia).',
     },
-    "fr": {"ui_text_size": "Texte plus grand", "ui_theme": "Clair / sombre",
+    "fr": {"tagline": 'Les mots de la santé, pour tous', "ui_text_size": "Texte plus grand", "ui_theme": "Clair / sombre",
         "gl_link": 'Chercher un mot médical',
         "gl_title": 'Chercher un mot médical',
         "gl_intro": "Écrivez un mot ou une abréviation de votre lettre du médecin (par exemple : dyspnée, HTA, LDL). Ce que vous écrivez n'est pas enregistré.",
@@ -36,7 +36,7 @@ UI_TEXTS = {
         "gl_other": "La même explication dans d'autres langues",
         "gl_disclaimer": "Ce texte explique seulement le sens d'un mot. Il ne dit pas si votre situation est grave et ne remplace pas votre médecin. N'arrêtez et ne changez jamais un traitement sans l'avis de votre médecin. Urgence : 190 (Tunisie) · 112 (Allemagne).",
     },
-    "ar": {"ui_text_size": "نص أكبر", "ui_theme": "فاتح / داكن",
+    "ar": {"tagline": 'كلمات الصحة للجميع', "ui_text_size": "نص أكبر", "ui_theme": "فاتح / داكن",
         "gl_link": 'البحث عن كلمة طبية',
         "gl_title": 'البحث عن كلمة طبية',
         "gl_intro": 'اكتب كلمة أو اختصارًا من رسالة الطبيب (مثل: dyspnée أو HTA أو LDL). لا نحتفظ بما تكتبه.',
