@@ -1,0 +1,31 @@
+<style>
+    .inline-unit { display: flex; gap: 6px; }
+    .inline-unit input { flex: 1 1 55%; min-width: 0; }
+    .inline-unit select.unit { flex: 1 1 45%; min-width: 0; }
+</style>
+<script>
+// Unit choice for lab values: the server converts, this keeps the range hint and the instant check in line.
+var MediUnits = (function () {
+    function factor(form, name) {
+        var sel = form.elements[name + '_unit'];
+        return sel ? Number(sel.options[sel.selectedIndex].dataset.factor) : 1;
+    }
+    function unitLabel(form, name) {
+        var sel = form.elements[name + '_unit'];
+        return sel ? sel.options[sel.selectedIndex].text.replace(/ \(.*\)$/, '') : '';
+    }
+    function fmt(n, f) {
+        return String(parseFloat(f === 1 ? n.toFixed(2) : n.toFixed(1)));
+    }
+    function updateHints(form) {
+        form.querySelectorAll('[data-range-for]').forEach(function (hint) {
+            var name = hint.dataset.rangeFor, f = factor(form, name);
+            var bdi = hint.querySelector('bdi');
+            var text = fmt(Number(hint.dataset.lo) / f, f) + '–' + fmt(Number(hint.dataset.hi) / f, f);
+            var unit = form.elements[name + '_unit'] ? unitLabel(form, name) : hint.dataset.std;
+            bdi.textContent = text + (unit ? ' ' + unit : '');
+        });
+    }
+    return { factor: factor, unitLabel: unitLabel, fmt: fmt, updateHints: updateHints };
+})();
+</script>

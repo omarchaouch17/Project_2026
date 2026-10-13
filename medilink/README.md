@@ -66,3 +66,7 @@ MediLink follows the pathway "Evaluation du risque cardiovasculaire" (INEAS 2022
 3. **Risk modifiers** (12 factors, e.g. sedentary lifestyle, HIV treatment): if the score is below 10 % and at least one applies, the category is raised from low to medium.
 
 Logic: `screening.py` (pure functions, tested), texts: `screening_texts.py` (DE/EN/FR/AR), table `screenings` stores only the outcome.
+
+## Units for lab values
+
+Labs use different units (e.g. in Tunisia g/L or mmol/L for cholesterol, µmol/L for creatinine, cmHg for blood pressure). Every lab field has a unit select; `units.py` converts to mg/dL / mmHg **before** range checks and calculations (1 mmol/L = 38.67 mg/dL cholesterol, 1 g/L = 100 mg/dL, 1 µmol/L = 1/88.4 mg/dL creatinine, 1 cmHg = 10 mmHg). Range hints, error messages and the "your value" marker follow the chosen unit.

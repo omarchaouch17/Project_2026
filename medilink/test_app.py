@@ -1242,3 +1242,75 @@ def test_language_switch_on_questionnaire_keeps_the_patient(client):
 def test_language_switch_on_other_pages_still_works(client):
     html = client.get("/risk?lang=en").get_data(as_text=True)
     assert 'href="/risk?lang=fr"' in html
+
+
+# ---------- Units for lab values (g/L, mmol/L, umol/L, cmHg) ----------
+
+import units as unit_module
+
+
+def test_unit_conversions():
+    assert unit_module.to_standard("cholesterol", 5.7, "mmol") == pytest.approx(220.4, abs=0.1)
+    assert unit_module.to_standard("cholesterol", 2.2, "gl") == pytest.approx(220.0)
+    assert unit_module.to_standard("creatinine", 354, "umol") == pytest.approx(4.0, abs=0.01)
+    assert unit_module.to_standard("blood_pressure", 14, "cmhg") == 140
+    assert unit_module.unit_code("hdl", {}) == "mgdl" and unit_module.unit_code("hdl", {"hdl_unit": "x"}) is None
+
+
+@pytest.mark.parametrize("field,value,unit,expected", [
+    ("cholesterol", "5.7", "mmol", 220.4), ("cholesterol", "2.2", "gl", 220.0),
+    ("hdl", "1.3", "mmol", 50.3), ("blood_pressure", "14", "cmhg", 140.0),
+])
+def test_risk_form_converts_units_before_calculating(client, fake_risk, field, value, unit, expected):
+    response = post_risk(client, **{field: value, field + "_unit": unit})
+    assert response.status_code == 200
+    args, _ = fake_risk.details[0]
+    stored = {"cholesterol": args[1], "hdl": args[2], "blood_pressure": args[3]}[field]
+    assert stored == pytest.approx(expected, abs=0.1)
+
+
+def test_risk_form_range_is_checked_in_standard_unit_and_shown_in_chosen_unit(client, fake_risk):
+    response = post_risk(client, lang="en", blood_pressure="30", blood_pressure_unit="cmhg")   # = 300 mmHg
+    html = response.get_data(as_text=True)
+    assert response.status_code == 400 and fake_risk == []
+    assert "8–22" not in html or "cmHg" in html
+    assert "between 8 and 22" in html and "cmHg" in html
+    response = post_risk(client, lang="en", cholesterol="12", cholesterol_unit="mmol")         # = 464 mg/dL
+    assert response.status_code == 400 and "mmol/L" in response.get_data(as_text=True)
+
+
+def test_risk_form_rejects_unknown_unit(client, fake_risk):
+    assert post_risk(client, cholesterol_unit="bananas").status_code == 400 and fake_risk == []
+
+
+def test_risk_form_keeps_chosen_unit_after_an_error(client):
+    html = post_risk(client, cholesterol="12", cholesterol_unit="mmol").get_data(as_text=True)
+    assert re.search(r'<option value="mmol"[^>]*selected', html)
+
+
+def test_risk_and_questionnaire_pages_offer_unit_selects(client):
+    html = client.get("/risk").get_data(as_text=True)
+    for name in ("cholesterol_unit", "hdl_unit", "blood_pressure_unit"):
+        assert f'name="{name}"' in html
+    assert "cmHg (14 = 140 mmHg)" in html
+    html = client.get("/screening?patient=1").get_data(as_text=True)
+    for name in ("creatinine_unit", "total_chol_unit", "ldl_unit", "sbp_unit", "dbp_unit"):
+        assert f'name="{name}"' in html
+    assert 'name="egfr_unit"' not in html
+
+
+def test_questionnaire_converts_units():
+    # creatinine 354 umol/L = 4.0 mg/dL -> severe kidney failure for a 60 year old man
+    assert _answers(creatinine="354", creatinine_unit="umol", sex="m", age="60")["level"] == "very_high"
+    # the pathway's limits are given in mmol/L: LDL > 4.9, total cholesterol > 8
+    assert _answers(ldl="4.9", ldl_unit="mmol")["level"] == "proceed"
+    assert _answers(ldl="5.0", ldl_unit="mmol")["level"] == "high"
+    assert _answers(total_chol="8.1", total_chol_unit="mmol")["level"] == "high"
+    assert _answers(ldl="1.95", ldl_unit="gl")["level"] == "high"          # 195 mg/dL
+    assert _answers(sbp="18", sbp_unit="cmhg")["level"] == "high"          # 180 mmHg
+
+
+def test_questionnaire_rejects_unknown_unit_and_out_of_range_in_unit(client, fake_screening):
+    assert post_screening(client, ldl="3", ldl_unit="bananas").status_code == 400
+    html = post_screening(client, lang="en", ldl="20", ldl_unit="mmol").get_data(as_text=True)   # = 773 mg/dL
+    assert "mmol/L" in html and fake_screening == []

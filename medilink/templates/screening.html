@@ -1,9 +1,11 @@
 {% extends "base.html" %}
+{% from "_unit_macros.html" import unit_select, range_hint %}
 
 {% block content %}
 <h1>{{ t.sc_title }}</h1>
 <p><strong>{{ name }}</strong></p>
 <p class="hint">{{ t.sc_intro }}</p>
+<p class="hint">{{ t.unit_hint }}</p>
 
 {% if just_saved %}<div class="success-box" role="status">✓ {{ t.saved }}<br>{{ t.next_screening }}</div>{% endif %}
 {% if errors %}<div class="error-box" role="alert">{{ t.error_title }}</div>{% endif %}
@@ -53,10 +55,13 @@
     </div>
     {% for field, label_key in [('creatinine', 'sc_creatinine'), ('egfr', 'sc_egfr')] %}
     {% set limits = checks.NUMBER_FIELDS[field] %}
+    {% set grouped = units.has_units(field) %}
     <div class="field">
-        <label for="{{ field }}">{{ t[label_key] }} ({{ limits[2] }})</label>
+        <label for="{{ field }}">{{ t[label_key] }}{% if not grouped %} ({{ limits[2] }}){% endif %}</label>
+        {% if grouped %}<div class="inline-unit">{% endif %}
         <input type="number" id="{{ field }}" name="{{ field }}" min="{{ limits[0] }}" max="{{ limits[1] }}" step="any" inputmode="decimal" value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
-        <small class="hint">{{ t.range }}: <bdi dir="ltr">{{ limits[0] }}–{{ limits[1] }}</bdi></small>
+        {% if grouped %}{{ unit_select(field, values, t, units) }}</div>{% endif %}
+        {{ range_hint(field, values, t, units, limits[0], limits[1], limits[2]) }}
         <div class="error" role="alert">{{ errors.get(field, '') }}</div>
     </div>
     {% endfor %}
@@ -64,10 +69,13 @@
     <h2>{{ t.sc_h_severe }}</h2>
     {% for field, label_key in [('total_chol', 'sc_total_chol'), ('ldl', 'sc_ldl'), ('sbp', 'sc_sbp'), ('dbp', 'sc_dbp')] %}
     {% set limits = checks.NUMBER_FIELDS[field] %}
+    {% set grouped = units.has_units(field) %}
     <div class="field">
-        <label for="{{ field }}">{{ t[label_key] }} ({{ limits[2] }})</label>
+        <label for="{{ field }}">{{ t[label_key] }}{% if not grouped %} ({{ limits[2] }}){% endif %}</label>
+        {% if grouped %}<div class="inline-unit">{% endif %}
         <input type="number" id="{{ field }}" name="{{ field }}" min="{{ limits[0] }}" max="{{ limits[1] }}" step="any" inputmode="decimal" value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
-        <small class="hint">{{ t.range }}: <bdi dir="ltr">{{ limits[0] }}–{{ limits[1] }}</bdi></small>
+        {% if grouped %}{{ unit_select(field, values, t, units) }}</div>{% endif %}
+        {{ range_hint(field, values, t, units, limits[0], limits[1], limits[2]) }}
         <div class="error" role="alert">{{ errors.get(field, '') }}</div>
     </div>
     {% endfor %}
@@ -90,8 +98,12 @@
 <br>
 <a href="/?lang={{ lang }}">{{ t.back }}</a>
 
+{% include "_unit_script.html" %}
 <script>
 (function () {
+    var unitForm = document.getElementById('screening-form');
+    unitForm.querySelectorAll('select.unit').forEach(function (sel) { sel.addEventListener('change', function () { MediUnits.updateHints(unitForm); }); });
+    MediUnits.updateHints(unitForm);
     var select = document.getElementById('diabetes'), box = document.getElementById('diabetes-details');
     function toggle() { box.style.display = select.value === 'yes' ? '' : 'none'; }
     select.addEventListener('change', toggle); toggle();

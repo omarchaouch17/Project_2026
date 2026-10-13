@@ -1,0 +1,13 @@
+{# Unit select for lab values + range hint. The server converts to mg/dL / mmHg, the hint follows the choice. #}
+{% macro unit_select(field, values, t, units) %}
+<select name="{{ field }}_unit" id="{{ field }}_unit" class="unit" aria-label="{{ t.unit }}">
+    {% for code, label, factor in units.options(field) %}
+    <option value="{{ code }}" data-factor="{{ factor }}" {% if (values.get(field ~ '_unit') or units.default_code(field)) == code %}selected{% endif %}>{{ t.unit_cmhg if code == 'cmhg' else label }}</option>
+    {% endfor %}
+</select>
+{% endmacro %}
+
+{% macro range_hint(field, values, t, units, low, high, std_unit) %}
+{% set grouped = units.has_units(field) %}
+<small class="hint" data-range-for="{{ field }}" data-lo="{{ low }}" data-hi="{{ high }}" data-std="{{ std_unit }}">{{ t.range }}: <bdi dir="ltr">{% if grouped %}{{ units.range_text(field, values.get(field ~ '_unit') or units.default_code(field), low, high) }}{% else %}{{ low }}–{{ high }}{% if std_unit %} {{ std_unit }}{% endif %}{% endif %}</bdi></small>
+{% endmacro %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_unit_macros.html" import unit_select, range_hint %}
 
 {% block content %}
 <h1>{{ t.risk_title }}</h1>
@@ -8,6 +9,7 @@
 
 {% if errors %}<div class="error-box" role="alert">{{ t.error_title }}{% if errors.general %}<br>{{ errors.general }}{% endif %}</div>{% endif %}
 
+<p class="hint">{{ t.unit_hint }}</p>
 <p class="hint">{{ t.chat_teaser }}</p>
 
 {% include "_value_guide.html" %}
@@ -37,12 +39,15 @@
     </div>
 
     {% for field, (label_key, (low, high), whole_only, unit) in fields.items() %}
+    {% set grouped = units.has_units(field) %}
     <div class="field">
-        <label for="{{ field }}">{{ t[label_key] }}{% if unit %} ({{ unit }}){% endif %}</label>
+        <label for="{{ field }}">{{ t[label_key] }}{% if unit and not grouped %} ({{ unit }}){% endif %}</label>
+        {% if grouped %}<div class="inline-unit">{% endif %}
         <input type="number" id="{{ field }}" name="{{ field }}" min="{{ low }}" max="{{ high }}"
                step="{{ 1 if whole_only else 'any' }}" inputmode="decimal" data-label="{{ t[label_key] }}"
                value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
-        <small class="hint">{{ t.range }}: <bdi dir="ltr">{{ low }}–{{ high }}{% if unit %} {{ unit }}{% endif %}</bdi></small>
+        {% if grouped %}{{ unit_select(field, values, t, units) }}</div>{% endif %}
+        {{ range_hint(field, values, t, units, low, high, unit) }}
         <div class="error" id="error-{{ field }}" role="alert">{{ errors.get(field, '') }}</div>
     </div>
     {% endfor %}
@@ -79,6 +84,7 @@
 <a href="/?lang={{ lang }}">{{ t.back }}</a>
 
 {% if patients %}
+{% include "_unit_script.html" %}
 <script>
 // Instant check in the browser (same rules as on the server, messages in the selected language).
 // The server always checks again - this check is only a convenience.
@@ -93,10 +99,13 @@
     }
     function check(el) {
         var v = el.value.trim().replace(',', '.'), label = el.dataset.label, msg = '';
-        var lo = Number(el.min), hi = Number(el.max);
+        var lo = Number(el.min), hi = Number(el.max), f = MediUnits.factor(form, el.name);
         if (v === '') { msg = fmt(M.required, { label: label }); }
         else if (!isFinite(Number(v)) || (el.step === '1' && !Number.isInteger(Number(v)))) { msg = fmt(M.number, { label: label }); }
-        else if (Number(v) < lo || Number(v) > hi) { msg = fmt(M.range, { label: label, low: lo, high: hi }); }
+        else if (Number(v) * f < lo - 1e-9 || Number(v) * f > hi + 1e-9) {
+            var unitName = MediUnits.unitLabel(form, el.name);
+            msg = fmt(M.range, { label: unitName ? label + ' (' + unitName + ')' : label, low: MediUnits.fmt(lo / f, f), high: MediUnits.fmt(hi / f, f) });
+        }
         show(el, msg);
         return msg === '';
     }
@@ -106,6 +115,14 @@
     function cigToggle() { cigBox.style.display = cigActive() ? '' : 'none'; }
     smoking.addEventListener('change', function () { show(smoking, ''); cigToggle(); });
     cigToggle();
+    form.querySelectorAll('select.unit').forEach(function (sel) {
+        sel.addEventListener('change', function () {
+            MediUnits.updateHints(form);
+            var input = form.elements[sel.name.replace('_unit', '')];
+            if (input && input.value !== '') { check(input); } else if (input) { show(input, ''); }
+        });
+    });
+    MediUnits.updateHints(form);
     inputs.forEach(function (el) {
         el.addEventListener('blur', function () { if (el.value !== '') { check(el); } });
         el.addEventListener('input', function () { show(el, ''); });
@@ -121,7 +138,7 @@
             if (!check(el)) { ok = false; }
         });
         var chol = form.elements['cholesterol'], hdl = form.elements['hdl'];
-        if (ok && Number(hdl.value) >= Number(chol.value)) { show(hdl, M.hdl); ok = false; }
+        if (ok && Number(hdl.value) * MediUnits.factor(form, 'hdl') >= Number(chol.value) * MediUnits.factor(form, 'cholesterol')) { show(hdl, M.hdl); ok = false; }
         if (!ok) { e.preventDefault(); }
     });
 })();

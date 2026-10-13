@@ -13,6 +13,7 @@ from fhir_db import (
     save_screening, get_latest_screening
 )
 import screening as screening_logic
+import units
 from translations import (
     texts, translate_diagnosis, category_name, CATEGORIES, DIAGNOSES, OTHER, excludes_framingham
 )
@@ -87,6 +88,7 @@ def template_globals():
         "languages": LANGUAGES,
         "language_path": request.path,
         "show_languages": True,
+        "units": units,
     }
 
 
@@ -296,10 +298,13 @@ def screening_submit():
             errors[field] = t["err_choose"].format(label=label)
         elif kind == "required":
             errors[field] = t["err_required"].format(label=label)
+        elif kind == "unit":
+            errors[field] = t["err_choose"].format(label=t["unit"])
         elif kind == "number":
             errors[field] = t["err_number"].format(label=label)
         else:
-            errors[field] = t["err_range"].format(label=label, low=info[0], high=info[1])
+            shown = f"{label} ({info[2]})" if info[2] else label
+            errors[field] = t["err_range"].format(label=shown, low=info[0], high=info[1])
     if errors:
         return _screening_page(patient_id, names[patient_id], request.form, errors, 400)
 

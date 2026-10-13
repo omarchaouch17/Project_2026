@@ -10,6 +10,8 @@ For illustration only - not a diagnostic tool.
 """
 import math
 
+import units
+
 # --- answer keys (check boxes) -------------------------------------------------------------
 CVD_CLINICAL = ("mi_acs", "angina", "revascularisation", "afib", "stroke_tia",
                 "aortic_aneurysm", "pad", "heart_failure")
@@ -75,18 +77,29 @@ def clean(form):
                 continue                       # sub-questions only count if diabetes = yes
             answers["checks"].add(key)
 
-    for key, (low, high, _unit) in NUMBER_FIELDS.items():
+    for key, (low, high, std_unit) in NUMBER_FIELDS.items():
         raw = form.get(key, "").strip()
         answers[key] = None
+        code = None
+        if units.has_units(key):
+            code = units.unit_code(key, form)
+            if code is None:
+                errors[key] = ("unit", None)
+                continue
         if not raw:
             continue
         value = _number(raw)
         if value is None:
             errors[key] = ("number", None)
-        elif not low <= value <= high:
-            errors[key] = ("range", (low, high))
+            continue
+        standard = units.to_standard(key, value, code) if code else value
+        if not low <= standard <= high:
+            if code:
+                errors[key] = ("range", (*units.display_range(key, code, low, high), units.label(key, code)))
+            else:
+                errors[key] = ("range", (low, high, std_unit))
         else:
-            answers[key] = value
+            answers[key] = round(standard, 2) if code else standard
 
     sex = form.get("sex", "")
     answers["sex"] = sex if sex in ("m", "f") else ""
@@ -98,7 +111,7 @@ def clean(form):
         if value is None or not value.is_integer():
             errors["age"] = ("number", None)
         elif not low <= value <= high:
-            errors["age"] = ("range", (low, high))
+            errors["age"] = ("range", (low, high, ""))
         else:
             answers["age"] = int(value)
 

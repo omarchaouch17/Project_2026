@@ -4,6 +4,7 @@ The limits come from risk.py so that form, validation and calculation can never 
 """
 import math
 
+import units
 from risk import RANGES
 from translations import CATEGORIES, DIAGNOSES, OTHER
 
@@ -56,6 +57,12 @@ def validate_risk(form, t, patients):
 
     for field, (label_key, (low, high), whole_only, _unit) in RISK_FIELDS.items():
         label = t[label_key]
+        code = None
+        if units.has_units(field):
+            code = units.unit_code(field, form)
+            if code is None:
+                errors[field] = t["err_choose"].format(label=t["unit"])
+                continue
         raw = form.get(field, "")
         if not raw.strip():
             errors[field] = t["err_required"].format(label=label)
@@ -64,10 +71,16 @@ def validate_risk(form, t, patients):
         if value is None or (whole_only and not value.is_integer()):
             errors[field] = t["err_number"].format(label=label)
             continue
-        if not low <= value <= high:
-            errors[field] = t["err_range"].format(label=label, low=low, high=high)
+        standard = units.to_standard(field, value, code) if code else value   # always checked in mg/dL / mmHg
+        if not low <= standard <= high:
+            if code:
+                shown_low, shown_high = units.display_range(field, code, low, high)
+                label = f"{label} ({units.label(field, code)})"
+            else:
+                shown_low, shown_high = low, high
+            errors[field] = t["err_range"].format(label=label, low=shown_low, high=shown_high)
             continue
-        values[field] = int(value) if whole_only else value
+        values[field] = int(value) if whole_only else (round(standard, 2) if code else value)
 
     # Logic check: HDL is only a part of the total cholesterol, so it must be smaller
     if "hdl" in values and "cholesterol" in values and values["hdl"] >= values["cholesterol"]:

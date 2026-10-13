@@ -15,6 +15,7 @@ def _build(common, checks, mods):
 
 SCREENING_TEXTS = {
 "de": _build({
+    "unit": "Einheit", "unit_hint": "Wähle bei jedem Laborwert die Einheit, die auf deinem Befund steht. MediLink rechnet sie automatisch um.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "Schritt 1: Fragebogen zum Herz-Kreislauf-Risiko",
     "sc_intro": "Zuerst wird geprüft, ob schon ein hohes oder sehr hohes Risiko besteht. Dann braucht es keine Berechnung, sondern zuerst ärztliche Abklärung und Behandlung. Nur wenn nichts davon zutrifft, geht es zum Score weiter. Unbekannte Werte einfach leer lassen.",
     "next_screening": "Jetzt bitte den Fragebogen ausfüllen.",
@@ -72,6 +73,7 @@ SCREENING_TEXTS = {
     "Schwere psychiatrische Erkrankung", "HIV-Behandlung", "Schlafapnoe",
 ]),
 "en": _build({
+    "unit": "Unit", "unit_hint": "For every lab value, choose the unit printed on your report. MediLink converts it automatically.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "Step 1: cardiovascular risk questionnaire",
     "sc_intro": "First we check whether there is already a high or very high risk. In that case no calculation is needed: medical assessment and treatment come first. Only if none of this applies do we go on to the score. Leave unknown values empty.",
     "next_screening": "Now please fill in the questionnaire.",
@@ -129,6 +131,7 @@ SCREENING_TEXTS = {
     "Major psychiatric disorder", "HIV treatment", "Sleep apnoea",
 ]),
 "fr": _build({
+    "unit": "Unité", "unit_hint": "Pour chaque valeur de laboratoire, choisissez l\'unité imprimée sur votre résultat. MediLink la convertit automatiquement.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "Étape 1 : questionnaire de risque cardiovasculaire",
     "sc_intro": "On vérifie d'abord s'il existe déjà un risque élevé ou très élevé. Dans ce cas, pas de calcul : l'évaluation médicale et le traitement passent en premier. Si rien de tout cela ne s'applique, on passe au score. Laissez vides les valeurs inconnues.",
     "next_screening": "Veuillez maintenant remplir le questionnaire.",
@@ -186,6 +189,7 @@ SCREENING_TEXTS = {
     "Trouble psychiatrique majeur", "Traitement d'une infection par le VIH", "Syndrome d'apnées obstructives du sommeil",
 ]),
 "ar": _build({
+    "unit": "الوحدة", "unit_hint": "لكل قيمة مخبرية، اختر الوحدة المكتوبة في نتيجة التحليل. يحوّلها MediLink تلقائياً.", "unit_cmhg": "cmHg (14 = 140 mmHg)",
     "sc_title": "الخطوة 1: استبيان خطر القلب والأوعية",
     "sc_intro": "نتحقق أولاً مما إذا كان هناك خطر مرتفع أو مرتفع جداً. في هذه الحالة لا حاجة للحساب: التقييم الطبي والعلاج أولاً. إذا لم ينطبق شيء من ذلك ننتقل إلى المقياس. اترك القيم غير المعروفة فارغة.",
     "next_screening": "يرجى الآن ملء الاستبيان.",

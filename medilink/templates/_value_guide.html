@@ -53,16 +53,21 @@
         var field = document.querySelector('#risk-form [name="' + scale.dataset.field + '"]');
         var marker = scale.querySelector('.marker-yours');
         if (!field) { return; }
+        var unitSelect = document.querySelector('#risk-form [name="' + scale.dataset.field + '_unit"]');
         function update() {
-            var value = parseFloat(String(field.value).replace(',', '.'));
+            var typed = parseFloat(String(field.value).replace(',', '.'));
+            // the scales are in mg/dL / mmHg: convert what was typed (mmol/L, g/L, cmHg ...) first
+            var factor = unitSelect ? Number(unitSelect.options[unitSelect.selectedIndex].dataset.factor) : 1;
+            var value = typed * factor;
             var min = parseFloat(scale.dataset.min), max = parseFloat(scale.dataset.max);
             if (isNaN(value)) { marker.hidden = true; return; }
             var percent = Math.max(0, Math.min(100, (value - min) / (max - min) * 100));
             marker.style.left = percent + '%';
-            marker.querySelector('.yours-number').textContent = value;
+            marker.querySelector('.yours-number').textContent = typed;
             marker.hidden = false;
         }
         field.addEventListener('input', update);
+        if (unitSelect) { unitSelect.addEventListener('change', update); }
         update();
     }
     function start() { document.querySelectorAll('.scale').forEach(setup); }
