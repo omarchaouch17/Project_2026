@@ -256,9 +256,21 @@ def smoking_line(values, t):
     return line
 
 
+# form field -> glossary term explained next to it (only meanings, taken from medical_terms.py)
+FIELD_TERMS = {"cholesterol": "gesamtcholesterin", "hdl": "hdl", "blood_pressure": "blutdruck",
+               "smoking": "nikotinabusus"}
+
+
+def risk_term_data(lang):
+    """{field: {"t": title, "x": explanation}} in the page language, for the 'what does this mean?' buttons."""
+    return {field: {"t": medical_glossary.title_of(key, lang), "x": medical_glossary.text_of(key, lang)}
+            for field, key in FIELD_TERMS.items()}
+
+
 def _risk_page(values, errors, status=200, just_saved=False):
     """Render the risk form (empty, or with the input and red messages)."""
     return render_template("risk.html", values=values, errors=errors, fields=RISK_FIELDS,
+                           term_data=risk_term_data(current_language()),
                            patients=patient_choices(), just_saved=just_saved,
                            chat_enabled=assistant.chat_enabled(), language_path="/risk"), status
 

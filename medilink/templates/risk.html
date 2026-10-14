@@ -36,6 +36,15 @@
     #wz-review ul { list-style: none; margin: 0; padding: 0; }
     #wz-review li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--soft-border); }
     #wz-review li button { background: none; border: 0; color: var(--link); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; min-height: 44px; padding: 0 8px; }
+    .term-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .term-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; border-radius: 50%; border: 2px solid var(--accent); background: var(--field-bg);
+                color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+    .term-pop { background: var(--soft); color: var(--text); border: 2px solid var(--accent); border-radius: 8px; padding: 12px 14px; margin: 6px 0 12px; }
+    .term-pop[hidden] { display: none; }
+    .term-pop p { margin: 6px 0 10px; }
+    .term-pop a { display: inline-block; margin-inline-end: 16px; min-height: 44px; line-height: 44px; }
+    .term-pop .term-close { min-height: 44px; padding: 0 14px; border: 2px solid var(--accent); border-radius: 8px; background: none;
+                            color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
     @media (prefers-reduced-motion: reduce) { #wz-head .wz-bar i { transition: none; } }
 </style>
 {% if patients %}
@@ -152,6 +161,43 @@
         el.addEventListener('input', function () { show(el, ''); });
     });
 
+    // ---- Keep the answers while the person looks something up or goes back (browser tab only, removed on sending) ----
+    var RiskDraft = (function () {
+        var KEY = 'fahemni_risk_draft', step = 0;
+        function read() { try { return JSON.parse(sessionStorage.getItem(KEY)); } catch (e) { return null; } }
+        function write() {
+            var values = {};
+            Array.prototype.forEach.call(form.elements, function (el) {
+                if (!el.name || el.name === 'lang' || el.type === 'submit' || el.type === 'button') { return; }
+                values[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            try { sessionStorage.setItem(KEY, JSON.stringify({ v: values, s: step })); } catch (e) { /* storage blocked: the form still works */ }
+        }
+        function restore() {
+            var d = read();
+            if (!d || !d.v) { return; }
+            var fresh = ['cholesterol', 'hdl', 'blood_pressure'].every(function (n) { return form.elements[n].value === ''; });
+            if (!fresh || form.querySelector('.invalid')) { return; }
+            Object.keys(d.v).forEach(function (name) {
+                var el = form.elements[name];
+                if (!el || !el.tagName) { return; }
+                if ((name === 'patient_id' || name === 'age') && el.value !== '') { return; }   // keep what the link already filled in
+                if (el.type === 'checkbox') { el.checked = !!d.v[name]; } else { el.value = d.v[name]; }
+            });
+            step = Number(d.s) || 0;
+        }
+        restore();
+        form.addEventListener('input', write);
+        form.addEventListener('change', write);
+        return {
+            step: function () { return step; },
+            save: function (n) { step = n; write(); },
+            clear: function () { try { sessionStorage.removeItem(KEY); } catch (e) { /* ignore */ } }
+        };
+    })();
+    cigToggle();
+    MediUnits.updateHints(form);
+
     // ---- Step by step: one question at a time (the form above stays complete without JavaScript) ----
     (function () {
         var W = {{ {"step": t.wz_step, "review": t.wz_review_label, "t": [t.wz_t1, t.wz_t2, t.wz_t3, t.wz_t4], "h": [t.wz_h1, t.wz_h2, t.wz_h3, t.wz_h4],
@@ -263,6 +309,7 @@
 
         function go(i, focus) {
             cur = Math.max(0, Math.min(last, i));
+            RiskDraft.save(cur);
             steps.forEach(function (list, n) { list.forEach(function (el) { el.classList.toggle('wz-off', n !== cur); }); });
             breaks.forEach(function (b) { b.classList.add('wz-off'); });
             var onReview = cur === last;
@@ -300,7 +347,51 @@
         for (var n = 0; n < last && !firstInvalid; n++) {
             if (steps[n].some(function (el) { return el.querySelector('.invalid'); })) { firstInvalid = true; go(n, false); }
         }
-        if (!firstInvalid) { go(0, false); }
+        if (!firstInvalid) { go(RiskDraft.step(), false); }
+    })();
+
+    // ---- "What does this mean?": explanation next to the word, taken from the glossary (meaning only) ----
+    (function () {
+        var D = {{ term_data|tojson }};
+        var X = {{ {"what": t.term_what, "more": t.term_more, "close": t.term_close}|tojson }};
+        var openItem = null;
+        function closeAll(focusButton) {
+            if (!openItem) { return; }
+            openItem.pop.hidden = true; openItem.btn.setAttribute('aria-expanded', 'false');
+            if (focusButton) { openItem.btn.focus(); }
+            openItem = null;
+        }
+        Object.keys(D).forEach(function (id) {
+            var control = document.getElementById(id), label = form.querySelector('label[for="' + id + '"]');
+            if (!control || !label) { return; }
+            var row = document.createElement('div'); row.className = 'term-row';
+            label.parentNode.insertBefore(row, label); row.appendChild(label);
+            var btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'term-btn'; btn.textContent = '?';
+            btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'term-pop-' + id);
+            btn.setAttribute('aria-label', X.what + ' ' + D[id].t);
+            var pop = document.createElement('div');
+            pop.id = 'term-pop-' + id; pop.className = 'term-pop'; pop.setAttribute('role', 'note'); pop.hidden = true;
+            var title = document.createElement('strong'); title.textContent = D[id].t;
+            var text = document.createElement('p'); text.textContent = D[id].x;
+            var more = document.createElement('a');
+            more.href = '/glossary?lang={{ lang }}'; more.target = '_blank'; more.rel = 'noopener'; more.textContent = X.more;
+            var close = document.createElement('button');
+            close.type = 'button'; close.className = 'term-close'; close.textContent = X.close;
+            pop.appendChild(title); pop.appendChild(text); pop.appendChild(more); pop.appendChild(close);
+            row.appendChild(btn);
+            row.parentNode.insertBefore(pop, row.nextSibling);
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var wasOpen = openItem && openItem.btn === btn;
+                closeAll(false);
+                if (!wasOpen) { pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); openItem = { btn: btn, pop: pop }; }
+            });
+            close.addEventListener('click', function () { closeAll(true); });
+        });
+        document.addEventListener('click', function (e) { if (openItem && !openItem.pop.contains(e.target)) { closeAll(false); } });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeAll(true); } });
+        form.addEventListener('click', function (e) { if (e.target.closest('#wz-nav, #wz-review')) { closeAll(false); } });
     })();
 
     form.addEventListener('submit', function (e) {
@@ -315,7 +406,7 @@
         });
         var chol = form.elements['cholesterol'], hdl = form.elements['hdl'];
         if (ok && Number(hdl.value) * MediUnits.factor(form, 'hdl') >= Number(chol.value) * MediUnits.factor(form, 'cholesterol')) { show(hdl, M.hdl); ok = false; }
-        if (!ok) { e.preventDefault(); }
+        if (!ok) { e.preventDefault(); } else { RiskDraft.clear(); }
     });
 })();
 </script>

@@ -1655,3 +1655,40 @@ def test_risk_form_still_contains_every_field_without_javascript(client):
 def test_step_script_stops_enter_from_submitting_early(client):
     html = client.get("/risk").get_data(as_text=True)
     assert "stopImmediatePropagation" in html and "goToInvalid" in html
+
+
+# ---- "What does this mean?" next to the form words, and the saved answers ----
+def _in_page(text, html):
+    """Texts inside the page script are JSON-escaped (\\u00df), so look for both forms."""
+    import json
+    return text in html or json.dumps(text)[1:-1] in html
+
+
+def test_every_form_term_exists_in_all_languages():
+    from medical_terms import TERMS
+    for field, key in app_module.FIELD_TERMS.items():
+        assert key in TERMS, field
+        for lang in ("de", "en", "fr", "ar"):
+            assert app_module.risk_term_data(lang)[field]["t"].strip()
+            assert app_module.risk_term_data(lang)[field]["x"].strip()
+
+
+@pytest.mark.parametrize("lang,title,close_text", [
+    ("fr", "Cholestérol total", "Fermer"),
+    ("en", "Total cholesterol", "Close"),
+    ("de", "Gesamtcholesterin", "Schließen"),
+    ("ar", "الكوليسترول الكلي", "إغلاق"),
+])
+def test_risk_page_has_term_explanations_in_page_language(client, lang, title, close_text):
+    html = client.get(f"/risk?lang={lang}").get_data(as_text=True)
+    assert "term-pop" in html and "RiskDraft" in html
+    assert _in_page(title, html) and _in_page(close_text, html)
+    assert f"/glossary?lang={lang}" in html
+    assert "target = '_blank'" in html      # glossary opens in a new tab: the form stays
+
+
+def test_term_explanations_only_use_glossary_texts(client):
+    from medical_terms import TERMS
+    html = client.get("/risk?lang=en").get_data(as_text=True)
+    assert _in_page("cholesterol that carries cholesterol away from the vessels", html)
+    assert "carries cholesterol away" in TERMS["hdl"]["en"]

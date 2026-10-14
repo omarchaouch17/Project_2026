@@ -1,6 +1,7 @@
 """wizard_texts.py - texts of the step-by-step risk form (one question at a time)."""
 WIZARD_TEXTS = {
     "de": {
+        "term_what": "Was bedeutet das?", "term_more": "Glossar öffnen (neuer Tab)", "term_close": "Schließen",
         "wz_step": "Schritt {n} von {total}", "wz_review_label": "Zusammenfassung",
         "wz_t1": "Wer ist die Person?", "wz_h1": "Diese Angaben genügen für den Anfang.",
         "wz_t2": "Cholesterin", "wz_h2": "Sie finden die Werte in Ihrem Blutbefund.",
@@ -11,6 +12,7 @@ WIZARD_TEXTS = {
         "wz_edit": "Ändern",
     },
     "en": {
+        "term_what": "What does this mean?", "term_more": "Open the glossary (new tab)", "term_close": "Close",
         "wz_step": "Step {n} of {total}", "wz_review_label": "Summary",
         "wz_t1": "Who is it for?", "wz_h1": "These details are enough to start.",
         "wz_t2": "Cholesterol", "wz_h2": "You find these values on your blood test.",
@@ -21,6 +23,7 @@ WIZARD_TEXTS = {
         "wz_edit": "Change",
     },
     "fr": {
+        "term_what": "Que signifie ce mot ?", "term_more": "Ouvrir le glossaire (nouvel onglet)", "term_close": "Fermer",
         "wz_step": "Étape {n} sur {total}", "wz_review_label": "Résumé",
         "wz_t1": "Qui est concerné ?", "wz_h1": "Ces informations suffisent pour commencer.",
         "wz_t2": "Cholestérol", "wz_h2": "Vous les trouvez sur votre prise de sang.",
@@ -31,6 +34,7 @@ WIZARD_TEXTS = {
         "wz_edit": "Modifier",
     },
     "ar": {
+        "term_what": "ماذا تعني هذه الكلمة؟", "term_more": "فتح المسرد (تبويب جديد)", "term_close": "إغلاق",
         "wz_step": "الخطوة {n} من {total}", "wz_review_label": "الملخص",
         "wz_t1": "من هو الشخص؟", "wz_h1": "هذه المعلومات تكفي للبدء.",
         "wz_t2": "الكوليسترول", "wz_h2": "تجدها في نتيجة تحليل الدم.",
