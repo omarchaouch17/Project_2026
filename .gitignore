@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 notes_data.json
 *.db
+.env
+*.zip
+Befund_Uebersetzer_Prototyp/
+medilink_backup_de/
