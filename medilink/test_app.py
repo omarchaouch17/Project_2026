@@ -1692,3 +1692,53 @@ def test_term_explanations_only_use_glossary_texts(client):
     html = client.get("/risk?lang=en").get_data(as_text=True)
     assert _in_page("cholesterol that carries cholesterol away from the vessels", html)
     assert "carries cholesterol away" in TERMS["hdl"]["en"]
+
+
+# ---------- 289 further terms (French only so far, proof-read by Hamza) ----------
+from medical_terms_extra import EXTRA_TERMS
+
+
+def test_extra_terms_are_complete_and_do_not_repeat_the_first_43():
+    assert len(EXTRA_TERMS) == 289 and len(TERMS) == 43
+    assert not set(EXTRA_TERMS) & set(TERMS)
+    for key, entry in EXTRA_TERMS.items():
+        assert key.startswith("x_") and entry["title"].strip() and entry["text"].strip() and entry["aliases"], key
+        assert 1 <= entry["lot"] <= 10
+
+
+def test_every_name_finds_its_term_and_no_name_belongs_to_two_terms():
+    owner = {}
+    for key in medical_glossary.ALL_KEYS:
+        for name in medical_glossary.names_of(key):
+            assert owner.setdefault(name, key) == key, (name, key, owner[name])
+            if key in EXTRA_TERMS:
+                assert key in medical_glossary.search(name), (key, name)
+
+
+def test_extra_term_text_has_no_advice_or_dose_words():
+    for key, entry in EXTRA_TERMS.items():
+        low = entry["text"].lower()
+        for word in ("vous devez", "il faut prendre", "mg ", "posologie", "consultez"):
+            assert word not in low, (key, word)
+
+
+@pytest.mark.parametrize("word,expected", [("troponine", "Substance libérée dans le sang"), ("FEVG", "Pourcentage de sang"),
+                                           ("IMC", "Poids divisé par la taille"), ("BAV", "signal électrique passe mal"),
+                                           ("statine", "diminue le taux de cholestérol LDL")])
+def test_extra_terms_are_found_in_french(gclient, word, expected):
+    html = _lookup(gclient, word, "fr")
+    assert expected in html and "pour l&#39;instant qu&#39;en français" not in html
+
+
+@pytest.mark.parametrize("lang,note", [("en", "only available in French for now"), ("de", "nur auf Französisch"),
+                                       ("ar", "بالفرنسية فقط")])
+def test_extra_term_in_other_languages_shows_french_text_with_a_note(gclient, lang, note):
+    html = _lookup(gclient, "troponine", lang)
+    assert "Substance libérée dans le sang" in html and note in html
+    assert "Français ·" not in html                       # no empty 'other languages' block
+
+
+def test_old_terms_still_have_all_languages_and_win_the_name_clash(gclient):
+    html = _lookup(gclient, "Diabète de type 2", "en")
+    assert "blood sugar level is permanently too high" in html and "only available in French" not in html
+    assert "Français · " in html

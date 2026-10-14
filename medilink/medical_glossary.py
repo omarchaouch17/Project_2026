@@ -8,6 +8,7 @@ import re
 import unicodedata
 
 from medical_terms import TERMS
+from medical_terms_extra import EXTRA_TERMS
 
 LANG_KEYS = ("de", "en", "fr", "ar")
 MAX_RESULTS = 6
@@ -26,11 +27,21 @@ def normalize(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def is_french_only(key, lang):
+    """True when the term only exists in French so far (the page then shows the French text with a note)."""
+    return key in EXTRA_TERMS and lang != "fr"
+
+
 def title_of(key, lang):
+    if key in EXTRA_TERMS:                       # French only so far: same title in every language
+        return EXTRA_TERMS[key]["title"]
     return TERMS[key][lang].split(":", 1)[0].strip()
 
 
 def text_of(key, lang):
+    if key in EXTRA_TERMS:
+        text = EXTRA_TERMS[key]["text"]
+        return text[:1].upper() + text[1:]
     parts = TERMS[key][lang].split(":", 1)
     text = parts[1].strip() if len(parts) > 1 else parts[0].strip()
     return text[:1].upper() + text[1:]          # the stored texts start in lower case after the colon
@@ -38,8 +49,10 @@ def text_of(key, lang):
 
 def names_of(key):
     """Every name a person might type for this term (normalised, without duplicates)."""
-    entry = TERMS[key]
-    raw = list(entry["de_aliases"]) + list(entry["fr_aliases"]) + [title_of(key, l) for l in LANG_KEYS]
+    if key in EXTRA_TERMS:
+        raw = list(EXTRA_TERMS[key]["aliases"]) + [EXTRA_TERMS[key]["title"]]
+    else:
+        raw = _raw_names(key)
     seen, names = set(), []
     for item in raw:
         name = normalize(item)
@@ -49,7 +62,13 @@ def names_of(key):
     return names
 
 
-_NAMES = {key: names_of(key) for key in TERMS}
+def _raw_names(key):
+    entry = TERMS[key]
+    return list(entry["de_aliases"]) + list(entry["fr_aliases"]) + [title_of(key, l) for l in LANG_KEYS]
+
+
+ALL_KEYS = list(TERMS) + list(EXTRA_TERMS)
+_NAMES = {key: names_of(key) for key in ALL_KEYS}
 
 
 def _score(query, names):

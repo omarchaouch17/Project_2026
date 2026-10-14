@@ -96,7 +96,9 @@
         {% for r in results %}
         <section class="card">
             <h2 style="text-align:start; margin-top:0;">{{ r.title }}</h2>
-            <p style="margin:0;">{{ r.text }}</p>
+            <p style="margin:0;"{% if r.french_only %} lang="fr" dir="ltr"{% endif %}>{{ r.text }}</p>
+            {% if r.french_only %}<p class="hint" style="margin:8px 0 0;">{{ t.gl_fr_only }}</p>{% endif %}
+            {% if r.others %}
             <details style="margin-top:12px;">
                 <summary style="cursor:pointer; padding:8px 0; font-weight:700;">{{ t.gl_other }}</summary>
                 {% for code, name, title, text in r.others %}
@@ -105,6 +107,7 @@
                 </div>
                 {% endfor %}
             </details>
+            {% endif %}
         </section>
         {% endfor %}
     {% else %}

@@ -147,10 +147,13 @@ def glossary_page():
         if len(medical_glossary.normalize(query)) < medical_glossary.MIN_QUERY:
             empty = True
         for key in keys:
+            french_only = medical_glossary.is_french_only(key, language)
             results.append({
                 "title": medical_glossary.title_of(key, language),
                 "text": medical_glossary.text_of(key, language),
-                "others": [(code, LANGUAGE_NAMES[code], medical_glossary.title_of(key, code),
+                "french_only": french_only,
+                "others": [] if medical_glossary.is_french_only(key, "de") else
+                          [(code, LANGUAGE_NAMES[code], medical_glossary.title_of(key, code),
                             medical_glossary.text_of(key, code))
                            for code in ("fr", "ar", "de", "en") if code != language],
             })
