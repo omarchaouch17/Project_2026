@@ -1770,3 +1770,12 @@ def test_old_terms_still_have_all_languages_and_win_the_name_clash(gclient):
     html = _lookup(gclient, "Diabète de type 2", "en")
     assert "blood sugar level is permanently too high" in html and "only available in French" not in html
     assert "Français · " in html
+
+
+def test_screening_has_term_explanations(client):
+    for lang in ("de", "en", "fr", "ar"):
+        html = client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
+        assert "term-pop" in html and f"/glossary?lang={lang}" in html
+        data = app_module.screening_term_data(lang)
+        assert set(data) == set(app_module.SCREENING_TERMS)
+        assert all(v["t"] and v["x"] for v in data.values())

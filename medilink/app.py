@@ -271,6 +271,19 @@ def risk_term_data(lang):
             for field, key in FIELD_TERMS.items()}
 
 
+SCREENING_TERMS = {"mi_acs": "myokardinfarkt", "angina": "angina", "afib": "vorhofflimmern", "stroke_tia": "schlaganfall",
+                   "pad": "x_aomi_arteriopathie_des_membres_inferieurs", "heart_failure": "herzinsuffizienz",
+                   "stenosis50": "stenose", "uric_acid": "x_acide_urique", "sleep_apnea": "x_apnee_du_sommeil",
+                   "overweight": "adipositas", "creatinine": "kreatinin", "egfr": "egfr", "ldl": "ldl",
+                   "total_chol": "gesamtcholesterin"}
+
+
+def screening_term_data(lang):
+    """{input name: {"t": title, "x": explanation}} for the screening questionnaire (words with a validated glossary entry only)."""
+    return {name: {"t": medical_glossary.title_of(key, lang), "x": medical_glossary.text_of(key, lang)}
+            for name, key in SCREENING_TERMS.items()}
+
+
 def _risk_page(values, errors, status=200, just_saved=False):
     """Render the risk form (empty, or with the input and red messages)."""
     return render_template("risk.html", values=values, errors=errors, fields=RISK_FIELDS,
@@ -357,6 +370,7 @@ def _screening_result_page(patient_id, name, level, reasons, modifiers, missing=
 def _screening_page(patient_id, name, values, errors, status=200, just_saved=False):
     return render_template("screening.html", patient_id=patient_id, name=name, values=values, errors=errors,
                            checks=screening_logic, just_saved=just_saved,
+                           term_data=screening_term_data(current_language()),
                            language_path=f"/screening?patient={patient_id}",
                            patient_arg=patient_id), status
 

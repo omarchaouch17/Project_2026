@@ -36,15 +36,24 @@
     #wz-review ul { list-style: none; margin: 0; padding: 0; }
     #wz-review li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--soft-border); }
     #wz-review li button { background: none; border: 0; color: var(--link); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; min-height: 44px; padding: 0 8px; }
-    .term-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .term-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; border-radius: 50%; border: 2px solid var(--accent); background: var(--field-bg);
-                color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
-    .term-pop { background: var(--soft); color: var(--text); border: 2px solid var(--accent); border-radius: 8px; padding: 12px 14px; margin: 6px 0 12px; }
+    .term-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .term-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; border: 0; background: none; cursor: pointer;
+                display: inline-flex; align-items: center; justify-content: center; color: var(--accent); font: inherit; font-size: 0; }
+    .term-btn::before { content: "?"; box-sizing: border-box; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--accent);
+                        display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; opacity: .75;
+                        transition: background .15s, color .15s, opacity .15s; }
+    .term-btn:hover::before, .term-btn[aria-expanded="true"]::before { opacity: 1; background: var(--accent); color: var(--card); }
+    .term-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 50%; }
+    .term-pop { position: relative; background: var(--soft); color: var(--text); border: 1px solid var(--accent); border-inline-start: 5px solid var(--accent);
+                border-radius: 10px; padding: 12px 52px 10px 14px; margin: 2px 0 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); animation: term-in .15s ease-out; text-align: start; }
     .term-pop[hidden] { display: none; }
-    .term-pop p { margin: 6px 0 10px; }
-    .term-pop a { display: inline-block; margin-inline-end: 16px; min-height: 44px; line-height: 44px; }
-    .term-pop .term-close { min-height: 44px; padding: 0 14px; border: 2px solid var(--accent); border-radius: 8px; background: none;
-                            color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+    .term-pop strong { display: block; font-size: 0.95rem; }
+    .term-pop p { margin: 4px 0 6px; line-height: 1.45; }
+    .term-pop a { display: inline-block; font-size: 0.9rem; min-height: 36px; line-height: 36px; }
+    .term-pop .term-close { position: absolute; top: 2px; inset-inline-end: 2px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
+                            color: var(--text); font-size: 1.6rem; line-height: 1; cursor: pointer; }
+    @keyframes term-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .term-pop { animation: none; } .term-btn::before { transition: none; } }
     @media (prefers-reduced-motion: reduce) { #wz-head .wz-bar i { transition: none; } }
 </style>
 {% if patients %}
@@ -377,7 +386,7 @@
             var more = document.createElement('a');
             more.href = '/glossary?lang={{ lang }}'; more.target = '_blank'; more.rel = 'noopener'; more.textContent = X.more;
             var close = document.createElement('button');
-            close.type = 'button'; close.className = 'term-close'; close.textContent = X.close;
+            close.type = 'button'; close.className = 'term-close'; close.textContent = '\u00d7'; close.setAttribute('aria-label', X.close);
             pop.appendChild(title); pop.appendChild(text); pop.appendChild(more); pop.appendChild(close);
             row.appendChild(btn);
             row.parentNode.insertBefore(pop, row.nextSibling);

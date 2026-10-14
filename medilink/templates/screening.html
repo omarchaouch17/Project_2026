@@ -2,6 +2,28 @@
 {% from "_unit_macros.html" import unit_select, range_hint %}
 
 {% block content %}
+<style>
+    .term-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .check-row { display: flex; align-items: center; gap: 4px; }
+    .check-row .check { flex: 1 1 auto; }
+    .term-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; border: 0; background: none; cursor: pointer;
+                display: inline-flex; align-items: center; justify-content: center; color: var(--accent); font: inherit; font-size: 0; }
+    .term-btn::before { content: "?"; box-sizing: border-box; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--accent);
+                        display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; opacity: .75;
+                        transition: background .15s, color .15s, opacity .15s; }
+    .term-btn:hover::before, .term-btn[aria-expanded="true"]::before { opacity: 1; background: var(--accent); color: var(--card); }
+    .term-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 50%; }
+    .term-pop { position: relative; background: var(--soft); color: var(--text); border: 1px solid var(--accent); border-inline-start: 5px solid var(--accent);
+                border-radius: 10px; padding: 12px 52px 10px 14px; margin: 2px 0 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); animation: term-in .15s ease-out; text-align: start; }
+    .term-pop[hidden] { display: none; }
+    .term-pop strong { display: block; font-size: 0.95rem; }
+    .term-pop p { margin: 4px 0 6px; line-height: 1.45; }
+    .term-pop a { display: inline-block; font-size: 0.9rem; min-height: 36px; line-height: 36px; }
+    .term-pop .term-close { position: absolute; top: 2px; inset-inline-end: 2px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
+                            color: var(--text); font-size: 1.6rem; line-height: 1; cursor: pointer; }
+    @keyframes term-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .term-pop { animation: none; } .term-btn::before { transition: none; } }
+</style>
 <h1>{{ t.sc_title }}</h1>
 <p><strong>{{ name }}</strong></p>
 <p class="hint">{{ t.sc_intro }}</p>
@@ -107,6 +129,53 @@
     var select = document.getElementById('diabetes'), box = document.getElementById('diabetes-details');
     function toggle() { box.style.display = select.value === 'yes' ? '' : 'none'; }
     select.addEventListener('change', toggle); toggle();
+})();
+</script>
+
+<script>
+(function () {
+    var form = document.getElementById('screening-form');
+    var D = {{ term_data|tojson }};
+    var X = {{ {"what": t.term_what, "more": t.term_more, "close": t.term_close}|tojson }};
+    var openItem = null;
+    function closeAll(focusButton) {
+        if (!openItem) { return; }
+        openItem.pop.hidden = true; openItem.btn.setAttribute('aria-expanded', 'false');
+        if (focusButton) { openItem.btn.focus(); }
+        openItem = null;
+    }
+    Object.keys(D).forEach(function (name) {
+        var control = form.elements[name];
+        if (!control) { return; }
+        var label = control.type === 'checkbox' ? control.closest('label') : form.querySelector('label[for="' + control.id + '"]');
+        if (!label) { return; }
+        var row = document.createElement('div'); row.className = control.type === 'checkbox' ? 'check-row' : 'term-row';
+        label.parentNode.insertBefore(row, label); row.appendChild(label);
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'term-btn'; btn.textContent = '?';
+        btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'term-pop-' + name);
+        btn.setAttribute('aria-label', X.what + ' ' + D[name].t);
+        var pop = document.createElement('div');
+        pop.id = 'term-pop-' + name; pop.className = 'term-pop'; pop.setAttribute('role', 'note'); pop.hidden = true;
+        var title = document.createElement('strong'); title.textContent = D[name].t;
+        var text = document.createElement('p'); text.textContent = D[name].x;
+        var more = document.createElement('a');
+        more.href = '/glossary?lang={{ lang }}'; more.target = '_blank'; more.rel = 'noopener'; more.textContent = X.more;
+        var close = document.createElement('button');
+        close.type = 'button'; close.className = 'term-close'; close.textContent = '\u00d7'; close.setAttribute('aria-label', X.close);
+        pop.appendChild(title); pop.appendChild(text); pop.appendChild(more); pop.appendChild(close);
+        row.appendChild(btn);
+        row.parentNode.insertBefore(pop, row.nextSibling);
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var wasOpen = openItem && openItem.btn === btn;
+            closeAll(false);
+            if (!wasOpen) { pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); openItem = { btn: btn, pop: pop }; }
+        });
+        close.addEventListener('click', function () { closeAll(true); });
+    });
+    document.addEventListener('click', function (e) { if (openItem && !openItem.pop.contains(e.target)) { closeAll(false); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeAll(true); } });
 })();
 </script>
 {% endblock %}
