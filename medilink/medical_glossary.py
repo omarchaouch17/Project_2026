@@ -28,47 +28,69 @@ def normalize(text):
 
 
 def is_french_only(key, lang):
-    """True when the term only exists in French so far (the page then shows the French text with a note)."""
-    return key in EXTRA_TERMS and lang != "fr"
+    """True when this language is missing for the term (the page then shows the French text with a note)."""
+    return key in EXTRA_TERMS and lang != "fr" and lang not in EXTRA_TERMS[key].get("tr", {})
 
 
 def title_of(key, lang):
-    if key in EXTRA_TERMS:                       # French only so far: same title in every language
-        return EXTRA_TERMS[key]["title"]
+    if key in EXTRA_TERMS:
+        entry = EXTRA_TERMS[key]
+        return entry["tr"][lang]["title"] if lang in entry.get("tr", {}) else entry["title"]
     return TERMS[key][lang].split(":", 1)[0].strip()
 
 
 def text_of(key, lang):
     if key in EXTRA_TERMS:
-        text = EXTRA_TERMS[key]["text"]
+        entry = EXTRA_TERMS[key]
+        text = entry["tr"][lang]["text"] if lang in entry.get("tr", {}) else entry["text"]
         return text[:1].upper() + text[1:]
     parts = TERMS[key][lang].split(":", 1)
     text = parts[1].strip() if len(parts) > 1 else parts[0].strip()
     return text[:1].upper() + text[1:]          # the stored texts start in lower case after the colon
 
 
-def names_of(key):
-    """Every name a person might type for this term (normalised, without duplicates)."""
-    if key in EXTRA_TERMS:
-        raw = list(EXTRA_TERMS[key]["aliases"]) + [EXTRA_TERMS[key]["title"]]
-    else:
-        raw = _raw_names(key)
-    seen, names = set(), []
-    for item in raw:
-        name = normalize(item)
-        if name and name not in seen:
-            seen.add(name)
-            names.append(name)
-    return names
+def _variants(title):
+    """'Pacemaker (stimulateur cardiaque)' -> the whole title, the part before the bracket, the bracket, each '/' part."""
+    out = {title}
+    base = re.sub(r"\s*\(.*?\)", "", title).strip()
+    out.add(base)
+    out.update(inner.strip() for inner in re.findall(r"\((.*?)\)", title))
+    out.update(part.strip() for part in re.split(r"\s*/\s*", base))
+    return [item for item in out if item]
 
 
 def _raw_names(key):
+    if key in EXTRA_TERMS:
+        entry = EXTRA_TERMS[key]
+        raw = list(entry["aliases"]) + [entry["title"]]
+        for lang_entry in entry.get("tr", {}).values():
+            raw += _variants(lang_entry["title"])
+        return raw
     entry = TERMS[key]
     return list(entry["de_aliases"]) + list(entry["fr_aliases"]) + [title_of(key, l) for l in LANG_KEYS]
 
 
+def _build_names():
+    """Every name a person might type, per term. A name belongs to ONE term: the first one wins (the first 43
+    terms come first), so a word never shows an unrelated explanation."""
+    owner, names = {}, {}
+    for key in ALL_KEYS:
+        names[key] = []
+        for item in _raw_names(key):
+            name = normalize(item)
+            if name and name not in owner:
+                owner[name] = key
+                names[key].append(name)
+    return names
+
+
+def names_of(key):
+    """Every name a person might type for this term (normalised, without duplicates)."""
+    return _NAMES[key]
+
+
 ALL_KEYS = list(TERMS) + list(EXTRA_TERMS)
-_NAMES = {key: names_of(key) for key in ALL_KEYS}
+_NAMES = _build_names()
 
 
 def _score(query, names):

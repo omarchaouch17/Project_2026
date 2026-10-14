@@ -1730,12 +1730,40 @@ def test_extra_terms_are_found_in_french(gclient, word, expected):
     assert expected in html and "pour l&#39;instant qu&#39;en français" not in html
 
 
-@pytest.mark.parametrize("lang,note", [("en", "only available in French for now"), ("de", "nur auf Französisch"),
-                                       ("ar", "بالفرنسية فقط")])
-def test_extra_term_in_other_languages_shows_french_text_with_a_note(gclient, lang, note):
+@pytest.mark.parametrize("lang,expected", [
+    ("en", "A substance released into the blood when the heart muscle is damaged"),
+    ("de", "Ein Stoff, der ins Blut gelangt, wenn der Herzmuskel geschädigt ist"),
+    ("ar", "مادة تنطلق في الدم عند تضرّر عضلة القلب")])
+def test_extra_term_is_shown_in_the_page_language_without_a_note(gclient, lang, expected):
     html = _lookup(gclient, "troponine", lang)
-    assert "Substance libérée dans le sang" in html and note in html
-    assert "Français ·" not in html                       # no empty 'other languages' block
+    assert expected in html
+    assert "only available in French" not in html and "nur auf Französisch" not in html and "بالفرنسية فقط" not in html
+    assert "Français ·" in html                           # the other languages are offered as for the first 43 terms
+
+
+def test_every_extra_term_has_german_english_and_arabic():
+    for key, entry in EXTRA_TERMS.items():
+        assert set(entry["tr"]) == {"de", "en", "ar"}, key
+        for lang in ("de", "en", "ar"):
+            assert entry["tr"][lang]["title"].strip() and entry["tr"][lang]["text"].strip(), (key, lang)
+            assert not medical_glossary.is_french_only(key, lang)
+
+
+@pytest.mark.parametrize("lang,word,expected", [("de", "Herzschrittmacher", "elektrische Impulse"),
+                                                ("en", "pacemaker", "electrical impulses"),
+                                                ("ar", "منظّم ضربات القلب", "نبضات كهربائية"),
+                                                ("en", "gout", "uric acid crystals"),
+                                                ("de", "Gicht", "Harnsäurekristalle")])
+def test_extra_terms_are_found_by_their_name_in_other_languages(gclient, lang, word, expected):
+    assert expected in _lookup(gclient, word, lang)
+
+
+def test_a_missing_language_falls_back_to_french_with_a_note(gclient, monkeypatch):
+    patched = dict(EXTRA_TERMS["x_troponine"], tr={"de": EXTRA_TERMS["x_troponine"]["tr"]["de"]})
+    monkeypatch.setitem(EXTRA_TERMS, "x_troponine", patched)
+    html = _lookup(gclient, "troponine", "en")
+    assert "Substance libérée dans le sang" in html and "only available in French for now" in html
+    assert "Français ·" not in html
 
 
 def test_old_terms_still_have_all_languages_and_win_the_name_clash(gclient):

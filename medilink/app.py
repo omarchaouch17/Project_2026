@@ -152,10 +152,11 @@ def glossary_page():
                 "title": medical_glossary.title_of(key, language),
                 "text": medical_glossary.text_of(key, language),
                 "french_only": french_only,
-                "others": [] if medical_glossary.is_french_only(key, "de") else
-                          [(code, LANGUAGE_NAMES[code], medical_glossary.title_of(key, code),
+                "others": [(code, LANGUAGE_NAMES[code], medical_glossary.title_of(key, code),
                             medical_glossary.text_of(key, code))
-                           for code in ("fr", "ar", "de", "en") if code != language],
+                           for code in ("fr", "ar", "de", "en")
+                           if code != language and not medical_glossary.is_french_only(key, code)
+                           and not (french_only and code == "fr")],
             })
         if not keys and not empty:
             suggestions = medical_glossary.suggest(query, language)
