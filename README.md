@@ -14,4 +14,4 @@ Medical informatics student (Hochschule Niederrhein, Krefeld). This repository c
 
 ## Contact
 
-Omar [last name] · [email] · [LinkedIn]
+Omar Chaouch · amrouchchaouch@gmail.com · LinkedIn: https://www.linkedin.com/in/chaouch-omar-5200ba18a
