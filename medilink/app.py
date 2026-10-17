@@ -13,6 +13,7 @@ from fhir_db import (
     save_screening, get_latest_screening, get_birth_year, set_birth_year
 )
 import screening as screening_logic
+import screening_texts
 import units
 import medical_glossary
 import eligibility
@@ -278,10 +279,18 @@ SCREENING_TERMS = {"mi_acs": "myokardinfarkt", "angina": "angina", "afib": "vorh
                    "total_chol": "gesamtcholesterin"}
 
 
+DIABETES_ORGAN_TERMS = ("x_retinopathie_diabetique", "x_nephropathie_diabetique", "x_neuropathie_diabetique")
+
+
 def screening_term_data(lang):
     """{input name: {"t": title, "x": explanation}} for the screening questionnaire (words with a validated glossary entry only)."""
-    return {name: {"t": medical_glossary.title_of(key, lang), "x": medical_glossary.text_of(key, lang)}
+    data = {name: {"t": medical_glossary.title_of(key, lang), "x": medical_glossary.text_of(key, lang)}
             for name, key in SCREENING_TERMS.items()}
+    # "organ damage from diabetes" = eyes, kidneys, nerves: one explanation line per organ, taken from the glossary
+    lines = [medical_glossary.title_of(key, lang) + ": " + medical_glossary.text_of(key, lang) for key in DIABETES_ORGAN_TERMS]
+    base = screening_texts.SCREENING_TEXTS[lang]["c_dm_organ_damage"].split(" (")[0].split(" （")[0]
+    data["dm_organ_damage"] = {"t": base, "x": "\n".join(lines)}
+    return data
 
 
 def _risk_page(values, errors, status=200, just_saved=False):

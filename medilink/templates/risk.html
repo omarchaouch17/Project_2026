@@ -263,6 +263,7 @@
         }
         ['sex', 'smoking'].forEach(function (id) { segment(document.getElementById(id)); });
         form.querySelectorAll('select.unit').forEach(segment);
+        MediUnits.watch(form, { fit: {{ t.unit_fit|tojson }}, amb: {{ t.unit_amb|tojson }}, auto: {{ t.unit_auto|tojson }} });
 
         function stepValid(i) {
             var ok = true;

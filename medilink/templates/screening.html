@@ -17,7 +17,7 @@
                 border-radius: 10px; padding: 12px 52px 10px 14px; margin: 2px 0 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); animation: term-in .15s ease-out; text-align: start; }
     .term-pop[hidden] { display: none; }
     .term-pop strong { display: block; font-size: 0.95rem; }
-    .term-pop p { margin: 4px 0 6px; line-height: 1.45; }
+    .term-pop p { margin: 4px 0 6px; line-height: 1.45; white-space: pre-line; }
     .term-pop a { display: inline-block; font-size: 0.9rem; min-height: 36px; line-height: 36px; }
     .term-pop .term-close { position: absolute; top: 2px; inset-inline-end: 2px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
                             color: var(--text); font-size: 1.6rem; line-height: 1; cursor: pointer; }
@@ -126,6 +126,7 @@
     var unitForm = document.getElementById('screening-form');
     unitForm.querySelectorAll('select.unit').forEach(function (sel) { sel.addEventListener('change', function () { MediUnits.updateHints(unitForm); }); });
     MediUnits.updateHints(unitForm);
+    MediUnits.watch(unitForm, { fit: {{ t.unit_fit|tojson }}, amb: {{ t.unit_amb|tojson }}, auto: {{ t.unit_auto|tojson }} });
     var select = document.getElementById('diabetes'), box = document.getElementById('diabetes-details');
     function toggle() { box.style.display = select.value === 'yes' ? '' : 'none'; }
     select.addEventListener('change', toggle); toggle();

@@ -142,6 +142,17 @@
             margin: 0;
         }
 
+        .site-notice { margin: 28px 0 12px; color: var(--muted); font-size: 0.9rem; line-height: 1.5; text-align: start; }
+        .sos { margin-top: 10px; padding: 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--soft-border); border-inline-start: 6px solid #c62828; animation: sos-in .5s ease-out both; }
+        .sos-head { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+        .sos-icon { width: 30px; height: 30px; border-radius: 50%; background: #c62828; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
+        .sos-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .sos-list a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 22px; border: 2px solid #c62828; color: var(--text); background: transparent; font-weight: 700; text-decoration: none; }
+        .sos-list a:hover, .sos-list a:focus-visible { background: #c62828; color: #fff; }
+        .sos-list a.sos-main { background: #c62828; color: #fff; animation: sos-pulse 2s ease-out 1.2s 3; }
+        @keyframes sos-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        @keyframes sos-pulse { 0% { box-shadow: 0 0 0 0 rgba(198,40,40,.55); } 100% { box-shadow: 0 0 0 14px rgba(198,40,40,0); } }
+        @media (prefers-reduced-motion: reduce) { .sos, .sos-list a.sos-main { animation: none; } }
         .hint {
             display: block;
             color: var(--muted);
@@ -245,6 +256,17 @@
     </div>
     {% endif %}
     {% block content %}{% endblock %}
+    <footer class="site-notice" role="contentinfo">
+        <p>{{ t.site_notice }}</p>
+        <div class="sos" role="group" aria-label="{{ t.sos_title }}">
+            <div class="sos-head"><span class="sos-icon" aria-hidden="true">!</span>{{ t.sos_title }}</div>
+            <div class="sos-list">
+                <a class="sos-main" href="tel:112">{{ t.sos_112 }}</a>
+                <a href="tel:116117">{{ t.sos_116 }}</a>
+                <a href="tel:190">{{ t.sos_190 }}</a>
+            </div>
+        </div>
+    </footer>
     <script>
         (function () {
             var d = document.documentElement;

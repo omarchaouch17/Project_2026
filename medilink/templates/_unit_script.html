@@ -2,6 +2,14 @@
     .inline-unit { display: flex; gap: 6px; }
     .inline-unit input { flex: 1 1 55%; min-width: 0; }
     .inline-unit select.unit { flex: 1 1 45%; min-width: 0; }
+    .u-glow { outline: 3px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent); }
+    .u-pulse { animation: u-pulse 1.4s ease-out 2; }
+    @keyframes u-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
+    .unit-note { margin: 8px 0; padding: 8px 12px; border-radius: 8px; background: var(--soft); color: var(--text); border-inline-start: 5px solid var(--accent); font-size: 0.92rem; line-height: 1.45; }
+    .unit-note[hidden] { display: none; }
+    .u-blink { animation: u-blink 1.6s ease-in-out 4; }
+    @keyframes u-blink { 0%, 100% { outline-color: transparent; box-shadow: none; } 50% { outline-color: var(--accent); box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 70%, transparent); } }
+    @media (prefers-reduced-motion: reduce) { .u-pulse, .u-blink { animation: none; } }
 </style>
 <script>
 // Unit choice for lab values: the server converts, this keeps the range hint and the instant check in line.
@@ -26,6 +34,74 @@ var MediUnits = (function () {
             bdi.textContent = text + (unit ? ' ' + unit : '');
         });
     }
-    return { factor: factor, unitLabel: unitLabel, fmt: fmt, updateHints: updateHints };
+    // Unit helper: sets the unit that matches the typed number when only one fits (and the person has not chosen it themselves),
+    // otherwise suggests. Input and matching unit glow in the same blue; two possible units blink together.
+    var ISO = ['\u2066', '\u2069'];
+    function watch(form, T) {
+        var sels = form.querySelectorAll('select.unit'), busy = false;
+        function controlsOf(sel) {
+            var next = sel.nextElementSibling;
+            return next && next.classList.contains('seg') ? next.querySelectorAll('button') : [sel];
+        }
+        function clear(input, sel) {
+            input.classList.remove('u-glow', 'u-pulse');
+            controlsOf(sel).forEach(function (c) { c.classList.remove('u-glow', 'u-pulse', 'u-blink'); });
+        }
+        function run(sel, auto) {
+            var name = sel.name.replace(/_unit$/, ''), input = form.elements[name];
+            if (!input) { return; }
+            var field = input.closest('.field') || input.parentNode;
+            var note = field.querySelector('.unit-note');
+            if (!note) {
+                note = document.createElement('div'); note.className = 'unit-note'; note.setAttribute('role', 'status'); note.hidden = true;
+                field.insertBefore(note, field.querySelector('[data-range-for="' + name + '"]') || null);
+            }
+            clear(input, sel); note.hidden = true;
+            var hint = form.querySelector('[data-range-for="' + name + '"]');
+            var v = parseFloat(String(input.value).replace(',', '.'));
+            if (!hint || !isFinite(v) || v <= 0) { return; }
+            var lo = Number(hint.dataset.lo), hi = Number(hint.dataset.hi), fits = [];
+            Array.prototype.forEach.call(sel.options, function (o) {
+                var f = Number(o.dataset.factor);
+                if (!o.disabled && f && v * f >= lo && v * f <= hi) { fits.push(o); }
+            });
+            if (!fits.length) { return; }
+            var label = function (o) { return ISO[0] + o.text.replace(/ \(.*\)$/, '') + ISO[1]; };
+            var value = ISO[0] + input.value + ISO[1], switched = false;
+            if (fits.length === 1 && auto && sel.dataset.manual !== '1' && sel.options[sel.selectedIndex] !== fits[0]) {
+                busy = true; sel.value = fits[0].value; sel.dispatchEvent(new Event('change', { bubbles: true })); busy = false; switched = true;
+            }
+            var current = sel.options[sel.selectedIndex], cur = fits.indexOf(current) >= 0;
+            input.classList.add('u-glow');
+            controlsOf(sel).forEach(function (c) {
+                var val = c.dataset.value !== undefined ? c.dataset.value : (c === sel ? current.value : null);
+                var match = fits.some(function (o) { return o.value === val; });
+                if (!match && c !== sel) { return; }
+                c.classList.add('u-glow');
+                if (fits.length > 1) { if (match) { c.classList.add('u-blink'); } }
+                else if (switched || !cur) { c.classList.add('u-pulse'); }
+            });
+            if (fits.length > 1) {
+                note.textContent = T.amb.replace('{value}', value).replace('{units}', fits.map(label).join(' / '));
+                note.hidden = false;
+            } else if (switched) {
+                note.textContent = T.auto.replace('{unit}', label(fits[0])).replace('{value}', value); note.hidden = false;
+            } else if (!cur) {
+                note.textContent = T.fit.replace('{unit}', label(fits[0])); note.hidden = false;
+            }
+        }
+        sels.forEach(function (sel) {
+            var name = sel.name.replace(/_unit$/, ''), input = form.elements[name], timer = null;
+            if (input) {
+                input.addEventListener('input', function () {           // wait until the typing pauses, so "2" on the way to "210" changes nothing
+                    sel.dataset.manual = ''; clearTimeout(timer);
+                    timer = setTimeout(function () { run(sel, true); }, 700);
+                });
+            }
+            sel.addEventListener('change', function () { if (!busy) { sel.dataset.manual = '1'; run(sel, false); } });
+            run(sel, false);
+        });
+    }
+    return { factor: factor, unitLabel: unitLabel, fmt: fmt, updateHints: updateHints, watch: watch };
 })();
 </script>

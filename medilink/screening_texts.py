@@ -64,7 +64,7 @@ SCREENING_TEXTS = {
     "Herzinfarkt oder akutes Koronarsyndrom", "Stabile Angina pectoris", "Eingriff an Herz- oder anderen Arterien (Revaskularisation)",
     "Vorhofflimmern", "Schlaganfall oder TIA", "Aortenaneurysma", "Periphere arterielle Verschlusskrankheit (pAVK)", "Herzinsuffizienz",
     "Im Bild: Verengung über 50 % einer Arterie (Herzkatheter, CT oder Ultraschall der Hals- oder Beinarterie)",
-    "Organschäden durch Diabetes", "Weiterer großer Risikofaktor (Rauchen, Fettstoffwechselstörung, Adipositas)", "Typ-1-Diabetes seit über 20 Jahren",
+    "Organschäden durch Diabetes (z. B. an Augen, Nieren oder Nerven)", "Weiterer großer Risikofaktor (Rauchen, Fettstoffwechselstörung, Adipositas)", "Typ-1-Diabetes seit über 20 Jahren",
     "Linksherzhypertrophie oder Mikroalbuminurie",
 ], [
     "Niedriger sozialer Status", "Erhöhte Harnsäure", "Frühe Menopause oder Schwangerschaftskomplikationen", "Ruheherzfrequenz über 80/min",
@@ -122,7 +122,7 @@ SCREENING_TEXTS = {
     "Heart attack or acute coronary syndrome", "Stable angina", "Procedure on heart or other arteries (revascularisation)",
     "Atrial fibrillation", "Stroke or TIA", "Aortic aneurysm", "Peripheral artery disease", "Heart failure",
     "On imaging: narrowing above 50 % of an artery (angiography, CT, or ultrasound of the neck or leg arteries)",
-    "Organ damage from diabetes", "Another major risk factor (smoking, lipid disorder, obesity)", "Type 1 diabetes for over 20 years",
+    "Organ damage from diabetes (e.g. eyes, kidneys or nerves)", "Another major risk factor (smoking, lipid disorder, obesity)", "Type 1 diabetes for over 20 years",
     "Left ventricular hypertrophy or microalbuminuria",
 ], [
     "Low social status", "High uric acid", "Early menopause or pregnancy complications", "Resting heart rate above 80/min",
@@ -180,7 +180,7 @@ SCREENING_TEXTS = {
     "Infarctus du myocarde ou syndrome coronarien aigu", "Angor stable", "Revascularisation coronarienne ou d'une autre artère",
     "Fibrillation atriale", "AVC ou accident ischémique transitoire", "Anévrisme aortique", "Atteinte vasculaire périphérique", "Insuffisance cardiaque",
     "À l'imagerie : sténose supérieure à 50 % d'une artère (coronarographie, coroscanner, échographie carotidienne ou fémorale)",
-    "Atteinte des organes cibles du diabète", "Autre facteur de risque majeur (tabac, dyslipidémie, obésité)", "Diabète de type 1 depuis plus de 20 ans",
+    "Atteinte des organes cibles du diabète (par ex. yeux, reins ou nerfs)", "Autre facteur de risque majeur (tabac, dyslipidémie, obésité)", "Diabète de type 1 depuis plus de 20 ans",
     "Hypertrophie ventriculaire gauche ou microalbuminurie",
 ], [
     "Faible niveau social", "Acide urique élevé", "Ménopause précoce ou complications de grossesse", "Fréquence cardiaque de repos supérieure à 80/min",
@@ -238,7 +238,7 @@ SCREENING_TEXTS = {
     "احتشاء عضلة القلب أو متلازمة الشريان التاجي الحادة", "ذبحة صدرية مستقرة", "تدخل على الشرايين التاجية أو غيرها (إعادة التروية)",
     "الرجفان الأذيني", "سكتة دماغية أو نوبة إقفارية عابرة", "تمدد الأبهر", "مرض الشرايين المحيطية", "قصور القلب",
     "في التصوير: تضيق أكثر من 50% في شريان (قسطرة، أشعة مقطعية، أو إيكو لشرايين الرقبة أو الساق)",
-    "تلف الأعضاء الناتج عن السكري", "عامل خطر كبير آخر (التدخين، اضطراب الدهون، السمنة)", "سكري النوع الأول لأكثر من 20 سنة",
+    "تلف الأعضاء الناتج عن السكري (مثل العينين أو الكليتين أو الأعصاب)", "عامل خطر كبير آخر (التدخين، اضطراب الدهون، السمنة)", "سكري النوع الأول لأكثر من 20 سنة",
     "تضخم البطين الأيسر أو البيلة الألبومينية الدقيقة",
 ], [
     "مستوى اجتماعي منخفض", "ارتفاع حمض اليوريك", "سن يأس مبكر أو مضاعفات الحمل", "معدل ضربات القلب أثناء الراحة أكثر من 80/دقيقة",

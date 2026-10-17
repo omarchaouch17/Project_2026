@@ -1777,5 +1777,29 @@ def test_screening_has_term_explanations(client):
         html = client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
         assert "term-pop" in html and f"/glossary?lang={lang}" in html
         data = app_module.screening_term_data(lang)
-        assert set(data) == set(app_module.SCREENING_TERMS)
+        assert set(data) == set(app_module.SCREENING_TERMS) | {"dm_organ_damage"}
         assert all(v["t"] and v["x"] for v in data.values())
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_every_page_shows_notice_and_emergency_numbers(client, lang):
+    for path in ("/", "/glossary", "/risk"):
+        html = client.get(f"{path}?lang={lang}").get_data(as_text=True)
+        assert "site-notice" in html and "112" in html and "116117" in html
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_diabetes_organ_damage_has_examples_and_three_explanations(client, lang):
+    data = app_module.screening_term_data(lang)["dm_organ_damage"]
+    assert data["t"] and len(data["x"].split("\n")) == 3
+    assert "(" not in data["t"]
+    html = client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
+    assert "term-pop" in html and "white-space: pre-line" in html
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_unit_suggestion_is_wired_into_both_forms(client, lang):
+    for path in ("/risk", "/screening?patient=1"):
+        sep = "&" if "?" in path else "?"
+        html = client.get(f"{path}{sep}lang={lang}").get_data(as_text=True)
+        assert "MediUnits.watch" in html and "u-glow" in html and "u-blink" in html and "{unit}" in html and "{units}" in html and "{value}" in html
