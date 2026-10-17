@@ -1552,6 +1552,7 @@ def start_env(monkeypatch):
     monkeypatch.setattr(app_module, "get_visible_patients", lambda: [(5, "Sam")])
     years = {"year": THIS_YEAR - 51}
     monkeypatch.setattr(app_module, "get_birth_year", lambda pid: years["year"])
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda pid: ("proceed", [], []))   # default: questionnaire done
     return years
 
 
@@ -1865,3 +1866,30 @@ def test_result_pages_offer_the_sheet_download(client, fake_screening, lang):
     assert 'action="/sheet/1.pdf"' in html and 'name="patient"' in html and 'name="doctor"' in html
     assert f'<option value="{lang}" selected>' in html
     assert 'href="#sheet-card"' in html and 'id="sheet-card"' in html
+
+
+# ---------------------------------------------------------------- 4th card on the overview page: PDF sheet
+def test_start_page_sheet_card_is_closed_until_the_questionnaire_is_done(client, start_env, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda pid: None)
+    html = client.get("/patient/5/start?lang=en").get_data(as_text=True)
+    assert "Fill in the questionnaire first." in html and "/patient/5/sheet" not in html
+
+
+def test_start_page_sheet_card_opens_after_the_questionnaire(client, start_env, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda pid: ("high", ["diabetes"], []))
+    html = client.get("/patient/5/start?lang=fr").get_data(as_text=True)
+    assert 'href="/patient/5/sheet?lang=fr"' in html and "Fill in" not in html
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_sheet_page_shows_the_download_card(client, start_env, monkeypatch, lang):
+    import html as html_lib
+    page = html_lib.unescape(client.get(f"/patient/5/sheet?lang={lang}").get_data(as_text=True))
+    assert 'action="/sheet/5.pdf"' in page and texts[lang]["sheet_card_title"] in page
+
+
+def test_sheet_page_redirects_without_questionnaire_and_hides_from_strangers(client, visitor, start_env, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda pid: None)
+    response = client.get("/patient/5/sheet")
+    assert response.status_code == 302 and "/screening" in response.headers["Location"]
+    assert visitor.get("/patient/5/sheet").status_code == 404

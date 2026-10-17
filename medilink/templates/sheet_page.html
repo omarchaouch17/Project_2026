@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ t.sheet_card_title }}</h1>
+<p><strong>{{ name }}</strong></p>
+{% include "_sheet_card.html" %}
+<p class="hint">{{ t.no_advice }}</p>
+<br>
+<a href="/patient/{{ patient_id }}/start?lang={{ lang }}">{{ t.back }}</a>
+{% endblock %}

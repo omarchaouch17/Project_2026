@@ -97,6 +97,15 @@
             <strong>{{ t.st_card_words }}</strong>
             <span class="go">{{ t.st_ok }} →</span>
         </a>
+
+        {% if sheet_ready %}
+        <a class="st-card" href="/patient/{{ patient_id }}/sheet?lang={{ lang }}">
+        {% else %}<div class="st-card closed" aria-disabled="true">{% endif %}
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M12 11v6M9 14l3 3 3-3"/></svg>
+            <strong>{{ t.sheet_card_title }}</strong>
+            {% if sheet_ready %}<span class="go">{{ t.st_ok }} →</span>
+            {% else %}<span class="why">{{ t.st_closed }}<br>{{ t.sheet_closed_why }}</span>{% endif %}
+        {% if sheet_ready %}</a>{% else %}</div>{% endif %}
     </div>
     <p class="st-note">{{ t.st_estimate }}</p>
 {% endif %}

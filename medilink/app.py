@@ -211,8 +211,21 @@ def start_page(patient_id):
     year = get_birth_year(patient_id)
     state = eligibility.tools(year, get_conditions(patient_id))
     return render_template("start.html", patient_id=patient_id, name=name, year=year, state=state,
+                           sheet_ready=get_latest_screening(patient_id) is not None,
                            just_saved=bool(request.args.get("new")),
                            language_path=f"/patient/{patient_id}/start")
+
+
+@app.route("/patient/<int:patient_id>/sheet")
+def sheet_page(patient_id):
+    """Page with the download card for the PDF sheet (reached from the overview card)."""
+    names = dict(get_visible_patients())
+    if not can_see(patient_id) or patient_id not in names:
+        abort(404)
+    if get_latest_screening(patient_id) is None:
+        return redirect(url_for("screening_form", patient=patient_id, lang=current_language()))
+    return render_template("sheet_page.html", patient_id=patient_id, name=names[patient_id],
+                           language_path=f"/patient/{patient_id}/sheet")
 
 
 @app.route("/patient/<int:patient_id>/birth-year", methods=["POST"])
@@ -440,7 +453,7 @@ def screening_submit():
 def doctor_sheet(patient_id):
     """PDF sheet for the doctor's visit: language of the practice (default German) next to the patient's language."""
     names = dict(get_visible_patients())
-    if patient_id not in names:
+    if not can_see(patient_id) or patient_id not in names:
         abort(404)
     screening = get_latest_screening(patient_id)
     if screening is None:
