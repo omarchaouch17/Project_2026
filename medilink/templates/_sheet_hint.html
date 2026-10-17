@@ -1,0 +1,11 @@
+{# Small pill under the result: tells the person that a PDF for the doctor exists and jumps to the download card #}
+{% if patient_id %}
+<p class="sheet-hint"><a href="#sheet-card" class="sheet-hint-link"><span aria-hidden="true">&#128196;</span> {{ t.sheet_hint }} <span aria-hidden="true">&darr;</span></a></p>
+<style>
+    .sheet-hint { margin: 10px 0 14px; }
+    .sheet-hint-link { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 18px; border: 2px solid var(--accent);
+        border-radius: 999px; background: var(--card); color: var(--btn2-text, var(--link)); font-weight: 700; text-decoration: none; }
+    .sheet-hint-link:hover { background: var(--soft); }
+    .sheet-card { scroll-margin-top: 16px; }
+</style>
+{% endif %}

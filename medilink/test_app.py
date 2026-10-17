@@ -1864,3 +1864,4 @@ def test_result_pages_offer_the_sheet_download(client, fake_screening, lang):
     html = post_screening(client, stenosis50="on", lang=lang).get_data(as_text=True)
     assert 'action="/sheet/1.pdf"' in html and 'name="patient"' in html and 'name="doctor"' in html
     assert f'<option value="{lang}" selected>' in html
+    assert 'href="#sheet-card"' in html and 'id="sheet-card"' in html

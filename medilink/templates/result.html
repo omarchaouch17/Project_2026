@@ -11,6 +11,7 @@
 
 {% if tips %}
 <p class="badge badge-{{ category }}">{{ t['cat_' ~ category] }}</p>
+{% include "_sheet_hint.html" %}
 <h2>{{ t.tips_title }}</h2>
 <ul class="tips">
     {% for k in tips %}<li>{{ t[k] }}</li>{% endfor %}

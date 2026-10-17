@@ -1,6 +1,6 @@
 {# Download card: PDF sheet for the doctor's visit (language of the practice + language of the patient) #}
 {% if patient_id %}
-<section class="card sheet-card" aria-labelledby="sheet-h">
+<section class="card sheet-card" id="sheet-card" aria-labelledby="sheet-h">
     <h2 id="sheet-h" style="margin-top:0;">{{ t.sheet_card_title }}</h2>
     <p class="hint">{{ t.sheet_card_text }}</p>
     <form method="get" action="/sheet/{{ patient_id }}.pdf">
