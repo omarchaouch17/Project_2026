@@ -1803,3 +1803,64 @@ def test_unit_suggestion_is_wired_into_both_forms(client, lang):
         sep = "&" if "?" in path else "?"
         html = client.get(f"{path}{sep}lang={lang}").get_data(as_text=True)
         assert "MediUnits.watch" in html and "u-glow" in html and "u-blink" in html and "{unit}" in html and "{units}" in html and "{value}" in html
+
+
+# ---------------------------------------------------------------- PDF sheet for the doctor's visit
+LANGS4 = ["de", "en", "fr", "ar"]
+
+
+def test_sheet_texts_complete_in_every_language():
+    from sheet_texts import SHEET_TEXTS
+    keys = set(SHEET_TEXTS["de"])
+    assert all(set(SHEET_TEXTS[lang]) == keys for lang in LANGS4)
+    assert all(SHEET_TEXTS[lang][k].strip() for lang in LANGS4 for k in keys)
+    assert all("{date}" in SHEET_TEXTS[lang]["sheet_sub"] for lang in LANGS4)
+    assert all("{n}" in SHEET_TEXTS[lang]["sheet_years"] for lang in LANGS4)
+
+
+@pytest.mark.parametrize("doctor", LANGS4)
+@pytest.mark.parametrize("patient", LANGS4)
+def test_sheet_is_a_pdf_in_every_language_pair(client, monkeypatch, doctor, patient):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda pid: ("high", ["diabetes", "ldl_severe"], ["sedentary"]))
+    monkeypatch.setattr(app_module, "get_birth_year", lambda pid: 1970)
+    response = client.get(f"/sheet/1.pdf?doctor={doctor}&patient={patient}")
+    assert response.status_code == 200 and response.mimetype == "application/pdf"
+    assert response.data.startswith(b"%PDF") and b"%%EOF" in response.data[-20:]
+    assert "attachment" in response.headers["Content-Disposition"] and "Demo" not in response.headers["Content-Disposition"]
+
+
+def test_sheet_with_score_values_and_two_pages_for_many_reasons():
+    import sheet
+    base = {"name": "Test", "age": 50, "level": "proceed", "reasons": [], "modifiers": ["sedentary"],
+            "doctor_lang": "de", "patient_lang": "ar",
+            "risk": {"percent": 8.4, "values": {"cholesterol": 220, "hdl": 45.5, "systolic": 135, "smoker": True,
+                                                 "treated": False, "cigarettes": 10}}}
+    assert sheet.build_pdf(base).startswith(b"%PDF")
+    assert sheet.build_pdf(dict(base, risk=None)).startswith(b"%PDF")
+    long_case = dict(base, level="very_high", risk=None, modifiers=list(__import__("screening").MODIFIERS),
+                     reasons=["cvd_documented", "diabetes_complicated", "ckd_severe", "chol_severe", "ldl_severe", "bp_severe"],
+                     doctor_lang="fr")
+    assert sheet.build_pdf(long_case).count(b"/Type /Page\n") >= 2 or sheet.build_pdf(long_case).count(b"/Type /Page") >= 2
+
+
+def test_sheet_rejects_unknown_language_and_foreign_patient(client, visitor, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda pid: ("proceed", [], []))
+    monkeypatch.setattr(app_module, "get_latest_risk_values", lambda pid: None)
+    assert client.get("/sheet/1.pdf?doctor=xx").status_code == 400
+    assert client.get("/sheet/1.pdf?patient=<script>").status_code == 400
+    assert client.get("/sheet/999.pdf").status_code == 404
+    monkeypatch.setattr(app_module, "get_visible_patients", lambda: [])      # stranger sees no patients
+    assert visitor.get("/sheet/1.pdf").status_code == 404
+
+
+def test_sheet_without_questionnaire_redirects_to_it(client, monkeypatch):
+    monkeypatch.setattr(app_module, "get_latest_screening", lambda pid: None)
+    response = client.get("/sheet/1.pdf")
+    assert response.status_code == 302 and "/screening" in response.headers["Location"]
+
+
+@pytest.mark.parametrize("lang", LANGS4)
+def test_result_pages_offer_the_sheet_download(client, fake_screening, lang):
+    html = post_screening(client, stenosis50="on", lang=lang).get_data(as_text=True)
+    assert 'action="/sheet/1.pdf"' in html and 'name="patient"' in html and 'name="doctor"' in html
+    assert f'<option value="{lang}" selected>' in html

@@ -127,6 +127,24 @@ def get_latest_risk(patient_id):
     return rows[0] if rows else None
 
 
+def get_latest_risk_values(patient_id):
+    """The newest score with the values that were entered: dict or None (for the PDF sheet)."""
+    rows = db.query("""
+        SELECT risk_percent, recorded_on, total_cholesterol, hdl, systolic_bp, smoker,
+               treated_hypertension, cigarettes_per_day
+        FROM risk_scores
+        WHERE patient_id = ?
+        ORDER BY recorded_on DESC, id DESC
+        LIMIT 1
+    """, (patient_id,))
+    if not rows:
+        return None
+    percent, recorded_on, cholesterol, hdl, systolic, smoker, treated, cigarettes = rows[0]
+    return {"percent": percent, "date": recorded_on,
+            "values": {"cholesterol": cholesterol, "hdl": hdl, "systolic": systolic, "smoker": bool(smoker),
+                       "treated": bool(treated), "cigarettes": cigarettes}}
+
+
 def save_risk(patient_id, age, total_cholesterol, hdl, systolic_bp, smoker, treated_hypertension,
               risk_percent, cigarettes_per_day=None):
     db.execute(

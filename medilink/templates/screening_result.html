@@ -28,6 +28,8 @@
 {% endif %}
 <p><a href="/screening?patient={{ patient_id }}&lang={{ lang }}">{{ t.sc_again }}</a></p>
 
+{% include "_sheet_card.html" %}
+
 <p class="emergency" role="note">{{ t.emergency }}</p>
 <p class="hint">{{ t.no_advice }}</p>
 <p class="hint">{{ t.sc_source }}</p>

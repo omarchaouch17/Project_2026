@@ -19,6 +19,8 @@
 <p class="hint">{{ t.no_advice }}</p>
 {% endif %}
 
+{% include "_sheet_card.html" %}
+
 <section class="chat" aria-label="{{ t.chat_title_faq if not chat_enabled else t.chat_title }}">
     <h2>{{ t.chat_title if chat_enabled else t.chat_title_faq }}</h2>
     <p class="hint">{{ t.chat_hint if chat_enabled else t.chat_hint_faq }}</p>

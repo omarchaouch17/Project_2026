@@ -1,0 +1,26 @@
+{# Download card: PDF sheet for the doctor's visit (language of the practice + language of the patient) #}
+{% if patient_id %}
+<section class="card sheet-card" aria-labelledby="sheet-h">
+    <h2 id="sheet-h" style="margin-top:0;">{{ t.sheet_card_title }}</h2>
+    <p class="hint">{{ t.sheet_card_text }}</p>
+    <form method="get" action="/sheet/{{ patient_id }}.pdf">
+        <div class="field">
+            <label for="sheet-patient">{{ t.sheet_pick_patient }}</label>
+            <select id="sheet-patient" name="patient">
+                {% for code, label in [('de', 'Deutsch'), ('en', 'English'), ('fr', 'Français'), ('ar', 'العربية')] %}
+                <option value="{{ code }}"{% if code == lang %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label for="sheet-doctor">{{ t.sheet_pick_doctor }}</label>
+            <select id="sheet-doctor" name="doctor">
+                {% for code, label in [('de', 'Deutsch'), ('en', 'English'), ('fr', 'Français'), ('ar', 'العربية')] %}
+                <option value="{{ code }}"{% if code == 'de' %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit">{{ t.sheet_download }}</button>
+    </form>
+</section>
+{% endif %}

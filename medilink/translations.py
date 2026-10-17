@@ -551,3 +551,7 @@ for _lang, _extra in START_TEXTS.items():
 from wizard_texts import WIZARD_TEXTS  # noqa: E402
 for _lang, _extra in WIZARD_TEXTS.items():
     texts[_lang].update(_extra)
+
+from sheet_texts import SHEET_TEXTS  # noqa: E402
+for _lang, _extra in SHEET_TEXTS.items():
+    texts[_lang].update(_extra)

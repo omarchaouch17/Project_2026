@@ -3,14 +3,14 @@ import os
 import uuid
 from datetime import timedelta
 
-from flask import Flask, request, render_template, redirect, url_for, session, abort
+from flask import Flask, request, render_template, redirect, url_for, session, abort, Response
 
 from fhir_db import (
     create_all_tables, add_patient, add_condition, delete_patient,
     save_risk, get_latest_risk, get_all_risks,
     count_visit, get_statistics, get_all_entries,
     get_patients_with_conditions, get_all_patients, get_conditions,
-    save_screening, get_latest_screening, get_birth_year, set_birth_year
+    save_screening, get_latest_screening, get_birth_year, set_birth_year, get_latest_risk_values
 )
 import screening as screening_logic
 import screening_texts
@@ -23,6 +23,7 @@ from translations import (
 from risk import framingham
 from advice import risk_category, get_tips
 import assistant
+import sheet
 import faq
 from validation import (
     RISK_FIELDS, validate_risk, validate_patient, birth_year_error
@@ -365,7 +366,7 @@ def calculate_risk():
                            suggestions=faq.suggestions(current_language()),
                            message=f"{values['name']}: " + t["result"].format(p=risk_percent),
                            smoking_line=smoking_line(values, t),
-                           category=category, tips=get_tips(values, category),
+                           category=category, tips=get_tips(values, category), patient_id=values["patient_id"],
                            modifier_keys=modifiers if upgraded else [],
                            show_languages=False)
 
@@ -433,6 +434,29 @@ def screening_submit():
         return redirect(url_for("risk_form", patient=patient_id, lang=current_language()))
     return _screening_result_page(patient_id, names[patient_id], result["level"], result["reasons"],
                                   result["modifiers"], result["missing"], result["egfr"])
+
+
+@app.route("/sheet/<int:patient_id>.pdf")
+def doctor_sheet(patient_id):
+    """PDF sheet for the doctor's visit: language of the practice (default German) next to the patient's language."""
+    names = dict(get_visible_patients())
+    if patient_id not in names:
+        abort(404)
+    screening = get_latest_screening(patient_id)
+    if screening is None:
+        return redirect(url_for("screening_form", patient=patient_id, lang=current_language()))
+    level, reasons, modifiers = screening
+    doctor_lang = request.args.get("doctor", "de")
+    patient_lang = request.args.get("patient", current_language())
+    if doctor_lang not in LANGUAGES or patient_lang not in LANGUAGES:
+        abort(400)
+    risk = get_latest_risk_values(patient_id) if level == screening_logic.PROCEED else None
+    pdf = sheet.build_pdf({"name": names[patient_id], "age": eligibility.age_from(get_birth_year(patient_id)),
+                           "level": level, "reasons": reasons, "modifiers": modifiers, "risk": risk,
+                           "doctor_lang": doctor_lang, "patient_lang": patient_lang})
+    return Response(pdf, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="Fahemni_Sheet_{patient_id}.pdf"',
+                             "Cache-Control": "no-store"})
 
 
 @app.route("/history/<int:patient_id>")
