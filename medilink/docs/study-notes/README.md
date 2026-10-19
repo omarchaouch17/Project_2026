@@ -1,6 +1,6 @@
-# Study Notes – MediLink
+# Study Notes – Fahemni (formerly MediLink)
 
-Study notes for the medical and technical topics behind my MediLink project.
+Study notes for the medical and technical topics behind my Fahemni project (first called MediLink).
 Each file covers one topic I worked through while building the project.
 
 | # | Topic | File |
@@ -10,7 +10,7 @@ Each file covers one topic I worked through while building the project.
 
 ## 01 – Framingham Hard CHD Risk Score
 
-**In short:** MediLink estimates a patient's 10-year risk of a heart attack or coronary death,
+**In short:** Fahemni estimates a patient's 10-year risk of a heart attack or coronary death,
 using age, cholesterol, blood pressure and smoking status. The formula comes from the
 Framingham Heart Study, which followed thousands of people over decades.
 
@@ -33,4 +33,4 @@ Framingham Heart Study, which followed thousands of people over decades.
 The explanations and diagrams in the PDFs were created with AI assistance (Claude), which I used
 as a tutor. The implementation, the validation against the original source and the self-tests are my own work.
 
-> ⚠️ MediLink is a learning project. The risk calculator is a demo, not a diagnostic tool.
+> ⚠️ Fahemni is a learning project. The risk calculator is a demo, not a diagnostic tool.

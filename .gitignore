@@ -1,9 +1,22 @@
+# Python
 venv/
 __pycache__/
 *.pyc
-notes_data.json
+.pytest_cache/
+
+# Local data and secrets: never publish these
 *.db
 .env
+notes_data.json
+
+# Packages, backups and personal files kept on my PC only
 *.zip
+_Archiv/
+PDF/
 Befund_Uebersetzer_Prototyp/
 medilink_backup_de/
+
+# Editors and system files
+.vscode/
+.idea/
+Thumbs.db

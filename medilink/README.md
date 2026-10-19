@@ -22,7 +22,7 @@ Portfolio project from my Medical Informatics studies (HSNR Krefeld). English is
 - Free rule-based help assistant (`faq.py`) and an optional AI assistant (Claude API, `ANTHROPIC_API_KEY`) with message limits and emergency-word detection
 - FHIR-inspired database (Patient, Condition, risk score) with automatic migration
 - Intro animation (respects `prefers-reduced-motion`)
-- 150+ automated tests (pytest)
+- 370+ automated tests (pytest), run automatically on every push (GitHub Actions)
 
 ## Privacy & statistics
 - `/statistics`: anonymous totals (visitors, patients, calculations, average risk) plus the visitor's own entries.
@@ -53,7 +53,7 @@ python -m pytest -q  # tests
 
 ## Structure
 `app.py` (routes) · `validation.py` · `risk.py` (Framingham) · `advice.py` · `faq.py` · `assistant.py` ·
-`db.py` · `fhir_db.py` · `translations.py` · `templates/` · `test_app.py`, `test_risk.py`
+`screening.py` (questionnaire logic) · `units.py` · `sheet.py` (PDF) · `db.py` · `fhir_db.py` · `translations.py` and the `*_texts.py` text modules · `templates/` · `test_app.py`, `test_risk.py`
 
 Not a diagnostic tool – for learning and demonstration only. Please enter invented data only.
 
@@ -79,7 +79,7 @@ remembered in the browser. Colours are CSS variables in `templates/base.html`.
 ## Medical word lookup (`/glossary`)
 A person types ONE word or abbreviation from a doctor's letter (French, German, English or Arabic, with or without accents)
 and gets the explanation in the page language plus the other three languages. There is no automatic reading of letters or photos.
-- 43 hand-written terms in `medical_terms.py` (cardiology / internal medicine); French and Arabic texts still need review by a native speaker or a doctor.
+- 332 terms: 43 in `medical_terms.py` (cardiology / internal medicine) and 289 in `medical_terms_extra.py`, each in French, German, English and Arabic; French and Arabic texts still need review by a native speaker or a doctor.
 - A word that is not in the glossary gets NO explanation ("ask your doctor"); only close spellings of known words are offered.
 - POST only: the typed word never appears in a URL or log and is not stored.
 - Fixed notice on every result: it explains a word, not the situation; no treatment advice; emergency numbers 190 (Tunisia) and 112 (Germany).
@@ -110,3 +110,22 @@ The risk form shows **one question at a time** (who, cholesterol, blood pressure
 sex / smoking / units, and a summary where every answer can be corrected. It is added by JavaScript on top of the normal form:
 without JavaScript the complete form is shown as before. The server still checks every value; the browser check is only a convenience.
 The explanation of the values moved below the form and starts closed.
+
+## Doctor-visit sheet (PDF)
+
+On the result pages, a card offers a PDF download with two language choices: **my language** and **the practice's language** (German by default).
+The PDF shows the practice's language on the left and the patient's language on the right (Arabic is written right to left; one wide column if both languages are the same).
+It contains only what the person entered, the result texts that are already on the website, three neutral questions for the doctor
+("Which tests make sense now?", ...), a space for notes, the disclaimer and the emergency numbers (112, 116117). No diagnosis, no treatment advice.
+
+Code: `sheet.py` (pure function, no Flask), texts in `sheet_texts.py`, route `/sheet/<id>.pdf` in `app.py` (only for the visitor's own patients).
+Tools: ReportLab for the PDF, `arabic-reshaper` and `python-bidi` for Arabic letters, DejaVu Sans fonts in `fonts/` (free licence).
+
+## Disclaimer and emergency box
+
+Every page shows a short notice (information only, no medical advice) and a card with the emergency numbers (112 and 116117 for Germany, 190 for Tunisia).
+
+## Unit suggestions
+
+When the typed value only makes sense in one unit (for example 5.4 in a cholesterol field means mmol/L), the unit button switches by itself and glows blue;
+when two units are possible, both blink and a note asks the person to choose. A unit the person chose by hand is never changed.
