@@ -47,6 +47,10 @@
     .sc-bar .msg[hidden] { display: none; }
     .sc-bar button { flex: 0 0 auto; }
     .sc-bar button[aria-disabled="true"] { background: var(--soft-border); color: var(--muted); }
+    .sc-toast { position: fixed; inset-inline: 0; bottom: 84px; margin: 0 auto; width: fit-content; max-width: calc(100% - 32px); z-index: 20; padding: 8px 16px; border-radius: 99px;
+                background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); font-weight: 700; font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .sc-toast.show { opacity: 1; }
+    .sc-link { background: none; color: var(--link); border: 0; text-decoration: underline; min-height: 44px; padding: 6px 10px; font-weight: 600; }
     .term-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; border: 0; background: none; cursor: pointer;
                 display: inline-flex; align-items: center; justify-content: center; color: var(--accent); font: inherit; font-size: 0; }
     .term-btn::before { content: "?"; box-sizing: border-box; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--accent);
@@ -63,7 +67,7 @@
     .term-pop .term-close { position: absolute; top: 2px; inset-inline-end: 2px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
                             color: var(--text); font-size: 1.6rem; line-height: 1; cursor: pointer; }
     @keyframes term-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .term-pop { animation: none; } .term-btn::before { transition: none; } .sc-sec > summary::before { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .sc-toast { transition: none; } .term-pop { animation: none; } .term-btn::before { transition: none; } .sc-sec > summary::before { transition: none; } }
 </style>
 <h1>{{ t.sc_title }}</h1>
 <p><strong>{{ name }}</strong></p>
@@ -181,6 +185,9 @@
         <button type="submit" id="sc-submit"{% if not values.get('diabetes') %} aria-disabled="true"{% endif %}>{{ t.sc_submit }}</button>
     </div>
 </form>
+<div class="sc-toast" id="sc-toast" role="status" aria-live="polite"></div>
+<p class="hint" id="sc-draft-note">{{ t.sc_draft_note }}</p>
+<p><button type="button" class="sc-link" id="sc-clear">{{ t.sc_clear }}</button></p>
 <p class="hint">{{ t.sc_source }}</p>
 <p class="hint">{{ t.risk_hint }}</p>
 <br>
@@ -213,12 +220,71 @@
     }
     unitForm.addEventListener('change', sync); sync();
     unitForm.addEventListener('submit', function (e) {
-        if (answered()) { return; }
+        if (answered()) { clearDraft(); return; }
         e.preventDefault();
         errBox.textContent = LBL.need;
         var sec = document.getElementById('sec-diabetes'); sec.open = true;
         sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
         radios[0].focus();
+    });
+
+    // ---- Draft: keeps the answers when the page is refreshed. Stored only in this browser tab (sessionStorage), removed on sending. ----
+    var KEY = 'fahemni_screening_draft_' + {{ patient_id|tojson }};
+    var toast = document.getElementById('sc-toast'), toastTimer = null, saveTimer = null;
+    var TXT = { saved: {{ t.sc_draft_saved|tojson }}, restored: {{ t.sc_draft_restored|tojson }} };
+    function say(text) {
+        toast.textContent = text; toast.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2200);
+    }
+    function fields() {
+        return Array.prototype.filter.call(unitForm.elements, function (el) {
+            return el.name && el.name !== 'lang' && el.name !== 'patient_id' && el.type !== 'submit' && el.type !== 'button' && el.type !== 'hidden';
+        });
+    }
+    function snapshot() {
+        var v = {};
+        fields().forEach(function (el) {
+            if (el.type === 'checkbox') { v[el.name] = el.checked; }
+            else if (el.type === 'radio') { if (el.checked) { v[el.name] = el.value; } }
+            else { v[el.name] = el.value; }
+        });
+        return v;
+    }
+    function hasContent(v) {
+        return Object.keys(v).some(function (k) { return k !== 'age' && !/_unit$/.test(k) && v[k] !== '' && v[k] !== false; });   // unit menus always have a default
+    }
+    function writeDraft() { try { sessionStorage.setItem(KEY, JSON.stringify(snapshot())); } catch (e) { /* storage blocked: the form still works */ } }
+    function clearDraft() { try { sessionStorage.removeItem(KEY); } catch (e) { /* ignore */ } }
+    function openFilled() {
+        unitForm.querySelectorAll('details.sc-sec').forEach(function (d) {
+            var filled = Array.prototype.some.call(d.querySelectorAll('input, select'), function (el) {
+                return (el.type === 'checkbox' || el.type === 'radio') ? el.checked : (el.type !== 'hidden' && el.value !== '' && el.id !== 'age' && !/_unit$/.test(el.name));
+            });
+            if (filled) { d.open = true; }
+        });
+    }
+    (function restore() {
+        var shown = snapshot();
+        if (hasContent(shown) || unitForm.querySelector('.invalid') || document.querySelector('.error-box')) { writeDraft(); return; }   // the server sent values: keep those
+        var saved = null;
+        try { saved = JSON.parse(sessionStorage.getItem(KEY)); } catch (e) { saved = null; }
+        if (!saved || !hasContent(saved)) { return; }
+        fields().forEach(function (el) {
+            if (!(el.name in saved) || (el.name === 'age' && el.value !== '')) { return; }
+            if (el.type === 'checkbox') { el.checked = !!saved[el.name]; }
+            else if (el.type === 'radio') { el.checked = saved[el.name] === el.value; }
+            else { el.value = saved[el.name]; }
+        });
+        MediUnits.updateHints(unitForm); sync(); openFilled(); say(TXT.restored);
+    })();
+    function scheduleSave() { writeDraft(); clearTimeout(saveTimer); saveTimer = setTimeout(function () { say(TXT.saved); }, 900); }
+    unitForm.addEventListener('input', scheduleSave); unitForm.addEventListener('change', scheduleSave);
+    document.getElementById('sc-clear').addEventListener('click', function () {
+        fields().forEach(function (el) {
+            if (/_unit$/.test(el.name)) { return; }   // unit menus keep their choice
+            if (el.type === 'checkbox' || el.type === 'radio') { el.checked = false; } else { el.value = ''; }
+        });
+        clearDraft(); MediUnits.updateHints(unitForm); sync(); errBox.textContent = ''; window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 })();
 </script>

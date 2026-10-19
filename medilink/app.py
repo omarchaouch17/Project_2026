@@ -288,11 +288,12 @@ def risk_term_data(lang):
 
 SCREENING_TERMS = {"mi_acs": "myokardinfarkt", "angina": "angina", "afib": "vorhofflimmern", "stroke_tia": "schlaganfall",
                    "pad": "x_aomi_arteriopathie_des_membres_inferieurs", "heart_failure": "herzinsuffizienz",
-                   "stenosis50": "stenose", "uric_acid": "x_acide_urique", "sleep_apnea": "x_apnee_du_sommeil",
+                   "stenosis50": "stenose", "aortic_aneurysm": "x_anevrisme", "uric_acid": "x_acide_urique", "sleep_apnea": "x_apnee_du_sommeil",
                    "overweight": "adipositas", "creatinine": "kreatinin", "egfr": "egfr", "ldl": "ldl",
                    "total_chol": "gesamtcholesterin"}
 
 
+REVASCULARISATION_TERMS = ("x_stent", "x_angioplastie", "x_pontage_coronarien")
 DIABETES_ORGAN_TERMS = ("x_retinopathie_diabetique", "x_nephropathie_diabetique", "x_neuropathie_diabetique")
 
 
@@ -304,6 +305,9 @@ def screening_term_data(lang):
     lines = [medical_glossary.title_of(key, lang) + ": " + medical_glossary.text_of(key, lang) for key in DIABETES_ORGAN_TERMS]
     base = screening_texts.SCREENING_TEXTS[lang]["c_dm_organ_damage"].split(" (")[0].split(" （")[0]
     data["dm_organ_damage"] = {"t": base, "x": "\n".join(lines)}
+    # "revascularisation" = reopening or bypassing an artery: one line per procedure, again only from validated glossary entries
+    lines = [medical_glossary.title_of(key, lang) + ": " + medical_glossary.text_of(key, lang) for key in REVASCULARISATION_TERMS]
+    data["revascularisation"] = {"t": screening_texts.SCREENING_TEXTS[lang]["c_revascularisation"], "x": "\n".join(lines)}
     return data
 
 

@@ -1778,7 +1778,7 @@ def test_screening_has_term_explanations(client):
         html = client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
         assert "term-pop" in html and f"/glossary?lang={lang}" in html
         data = app_module.screening_term_data(lang)
-        assert set(data) == set(app_module.SCREENING_TERMS) | {"dm_organ_damage"}
+        assert set(data) == set(app_module.SCREENING_TERMS) | {"dm_organ_damage", "revascularisation"}
         assert all(v["t"] and v["x"] for v in data.values())
 
 
@@ -1927,3 +1927,20 @@ def test_section_with_an_error_is_opened_and_diabetes_answer_is_kept(client):
 def test_unanswered_diabetes_is_still_refused_by_the_server(client, fake_screening):
     response = client.post("/screening", data={"lang": "fr", "patient_id": "1"})
     assert response.status_code == 400 and fake_screening == []
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_all_cardiovascular_boxes_have_a_question_mark_explanation(client, lang):
+    data = app_module.screening_term_data(lang)
+    for key in sc.CVD_CLINICAL:
+        assert key in data and data[key]["t"] and data[key]["x"], key
+    assert len(data["revascularisation"]["x"].split("\n")) == 3        # stent, angioplasty, bypass
+    assert data["aortic_aneurysm"]["x"]
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_questionnaire_keeps_a_draft_only_in_the_browser_tab(client, lang):
+    html = client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
+    assert "sessionStorage.setItem(KEY" in html and "localStorage.setItem(KEY" not in html   # the theme setting uses localStorage, the draft must not
+    assert "fahemni_screening_draft_" in html and 'id="sc-clear"' in html and 'id="sc-toast"' in html and 'id="sc-draft-note"' in html
+    assert "clearDraft()" in html
