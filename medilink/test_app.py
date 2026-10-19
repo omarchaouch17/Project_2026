@@ -1893,3 +1893,37 @@ def test_sheet_page_redirects_without_questionnaire_and_hides_from_strangers(cli
     response = client.get("/patient/5/sheet")
     assert response.status_code == 302 and "/screening" in response.headers["Location"]
     assert visitor.get("/patient/5/sheet").status_code == 404
+
+
+# ---------------------------------------------------------------- questionnaire layout: sections, required / optional labels
+
+@pytest.mark.parametrize("lang,req,opt", [("de", "Pflicht", "Freiwillig"), ("en", "Required", "Optional"),
+                                          ("fr", "Obligatoire", "Facultatif"), ("ar", "إلزامي", "اختياري")])
+def test_questionnaire_marks_only_diabetes_as_required(client, lang, req, opt):
+    html = client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
+    assert html.count('class="tag req"') == 1 and f'class="tag req">{req}<' in html
+    assert html.count(f'class="tag">{opt}<') == 5          # the five other sections
+    assert 'id="sec-diabetes"' in html and 'id="sc-submit" aria-disabled="true"' in html
+
+
+def test_every_field_is_still_in_the_form_inside_collapsible_sections(client):
+    html = client.get("/screening?patient=1&lang=fr").get_data(as_text=True)
+    assert html.count('<details class="sc-sec') == 6
+    for key in sc.CHECK_KEYS:
+        assert f'name="{key}"' in html, key
+    for name in ("diabetes", "sex", "age", "creatinine", "egfr", "total_chol", "ldl", "sbp", "dbp"):
+        assert f'name="{name}"' in html, name
+    assert html.count('type="radio" name="diabetes"') == 2
+
+
+def test_section_with_an_error_is_opened_and_diabetes_answer_is_kept(client):
+    html = post_screening(client, lang="fr", creatinine="1.0", sex="", age="", egfr="", diabetes="no").get_data(as_text=True)
+    kidney = html[html.index('<span class="ttl">3.'):]
+    assert "invalid" in kidney
+    assert re.search(r'<details class="sc-sec" open>\s*<summary><span class="ttl">3\.', html)
+    assert 'value="no" checked' in html and 'id="sc-submit" aria-disabled' not in html
+
+
+def test_unanswered_diabetes_is_still_refused_by_the_server(client, fake_screening):
+    response = client.post("/screening", data={"lang": "fr", "patient_id": "1"})
+    assert response.status_code == 400 and fake_screening == []

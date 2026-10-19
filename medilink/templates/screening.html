@@ -4,8 +4,49 @@
 {% block content %}
 <style>
     .term-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .check-row { display: flex; align-items: center; gap: 4px; }
-    .check-row .check { flex: 1 1 auto; }
+    /* Overview: steps, banner, collapsible sections, tap-friendly rows */
+    .sc-steps { width: min(520px, 100%); margin: 6px auto 4px; }
+    .sc-steps .bar { display: flex; gap: 6px; }
+    .sc-steps .bar i { flex: 1; height: 6px; border-radius: 9px; background: var(--soft-border); }
+    .sc-steps .bar i.on { background: var(--accent); }
+    .sc-steps small { display: block; margin-top: 4px; color: var(--muted); }
+    .sc-banner { width: min(520px, 100%); box-sizing: border-box; margin: 12px auto; padding: 10px 14px; text-align: start; border: 1px solid var(--accent); border-radius: 12px; background: var(--soft); }
+    .sc-sec { width: min(520px, 100%); box-sizing: border-box; margin: 12px auto; text-align: start; background: var(--card); border: 1px solid var(--soft-border); border-radius: 14px; }
+    .sc-sec.req { border: 2px solid var(--err); }
+    .sc-sec > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 12px 14px; min-height: 56px; font-weight: 700; }
+    .sc-sec > summary::-webkit-details-marker { display: none; }
+    .sc-sec > summary::before { content: ""; width: 8px; height: 8px; margin-inline-end: 6px; border-inline-end: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+                                transform: rotate(-45deg); transition: transform .15s; flex: 0 0 auto; }
+    .sc-sec[open] > summary::before { transform: rotate(45deg); }
+    html[dir="rtl"] .sc-sec:not([open]) > summary::before { transform: rotate(135deg); }
+    .sc-sec .ttl { flex: 1 1 calc(100% - 30px); min-width: 0; }
+    .sc-sec .tag { font-size: .75rem; font-weight: 700; border-radius: 6px; padding: 2px 8px; white-space: nowrap; border: 1px solid var(--border); color: var(--muted); }
+    .sc-sec .tag.req { background: var(--err-bg); color: var(--err); border-color: var(--err); }
+    .sc-sec .cnt { font-size: .78rem; font-weight: 700; border-radius: 99px; padding: 2px 10px; background: var(--accent); color: var(--btn-text); white-space: nowrap; }
+    .sc-sec .cnt[hidden] { display: none; }
+    .sc-sec .state { font-size: .78rem; font-weight: 700; border-radius: 99px; padding: 2px 10px; white-space: nowrap; border: 1.5px dashed var(--warn); color: var(--warn); }
+    .sc-sec .state.done { border: 1.5px solid var(--ok); color: var(--ok); background: var(--ok-bg); }
+    .sc-body { padding: 0 10px 12px; display: grid; gap: 8px; }
+    .sc-body > .hint { margin: 0 4px; }
+    .sc-body .field { width: 100%; margin: 6px 0; }
+    .check-row { display: flex; align-items: center; gap: 4px; border: 1.5px solid var(--soft-border); border-radius: 12px; background: var(--bg); }
+    .check-row .check { flex: 1 1 auto; display: flex; align-items: center; gap: 4px; width: auto; margin: 0; padding: 8px 6px; min-height: 52px; cursor: pointer; }
+    .check-row .check input { flex: 0 0 auto; width: 1.5em; height: 1.5em; }
+    .check-row:has(input:checked) { border-color: var(--accent); background: var(--soft); }
+    .check-row:has(input:checked) { background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+    .sc-yn { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .sc-yn legend { font-weight: 600; padding: 2px 4px 8px; }
+    .sc-yn .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .sc-yn .seg label { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 56px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--bg); font-weight: 700; cursor: pointer; }
+    .sc-yn .seg label:has(input:checked) { border-color: var(--accent); background: var(--accent); color: var(--btn-text); }
+    .sc-yn .seg input { margin: 0; }
+    .sc-yn .err { color: var(--err); font-size: .9rem; padding: 0 4px; min-height: 1.2em; }
+    .sc-bar { position: sticky; bottom: 8px; z-index: 5; width: min(520px, 100%); box-sizing: border-box; margin: 14px auto 0; padding: 10px 12px; display: flex; align-items: center; gap: 10px;
+              text-align: start; background: var(--card); border: 1px solid var(--soft-border); border-radius: 14px; box-shadow: 0 -2px 10px rgba(0,0,0,.15); }
+    .sc-bar .msg { flex: 1; font-size: .9rem; }
+    .sc-bar .msg[hidden] { display: none; }
+    .sc-bar button { flex: 0 0 auto; }
+    .sc-bar button[aria-disabled="true"] { background: var(--soft-border); color: var(--muted); }
     .term-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; border: 0; background: none; cursor: pointer;
                 display: inline-flex; align-items: center; justify-content: center; color: var(--accent); font: inherit; font-size: 0; }
     .term-btn::before { content: "?"; box-sizing: border-box; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--accent);
@@ -22,7 +63,7 @@
     .term-pop .term-close { position: absolute; top: 2px; inset-inline-end: 2px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
                             color: var(--text); font-size: 1.6rem; line-height: 1; cursor: pointer; }
     @keyframes term-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .term-pop { animation: none; } .term-btn::before { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .term-pop { animation: none; } .term-btn::before { transition: none; } .sc-sec > summary::before { transition: none; } }
 </style>
 <h1>{{ t.sc_title }}</h1>
 <p><strong>{{ name }}</strong></p>
@@ -32,88 +73,113 @@
 {% if just_saved %}<div class="success-box" role="status">✓ {{ t.saved }}<br>{{ t.next_screening }}</div>{% endif %}
 {% if errors %}<div class="error-box" role="alert">{{ t.error_title }}</div>{% endif %}
 
+{% macro cb(key, label) %}<div class="check-row"><label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ label }}</label></div>{% endmacro %}
+{% macro number_field(field, label_key) %}
+    {% set limits = checks.NUMBER_FIELDS[field] %}
+    {% set grouped = units.has_units(field) %}
+    <div class="field">
+        <label for="{{ field }}">{{ t[label_key] }}{% if not grouped %} ({{ limits[2] }}){% endif %}</label>
+        {% if grouped %}<div class="inline-unit">{% endif %}
+        <input type="number" id="{{ field }}" name="{{ field }}" min="{{ limits[0] }}" max="{{ limits[1] }}" step="any" inputmode="decimal" value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
+        {% if grouped %}{{ unit_select(field, values, t, units) }}</div>{% endif %}
+        {{ range_hint(field, values, t, units, limits[0], limits[1], limits[2]) }}
+        <div class="error" role="alert">{{ errors.get(field, '') }}</div>
+    </div>
+{% endmacro %}
+{% set ns = namespace(kidney=false, severe=false, htn=false, mods=false) %}
+{% for f in ['sex', 'age', 'creatinine', 'egfr'] %}{% if errors.get(f) or values.get(f) %}{% set ns.kidney = true %}{% endif %}{% endfor %}
+{% for f in ['total_chol', 'ldl', 'sbp', 'dbp'] %}{% if errors.get(f) or values.get(f) %}{% set ns.severe = true %}{% endif %}{% endfor %}
+{% for k in checks.HTN_ORGAN_DAMAGE %}{% if values.get(k) %}{% set ns.htn = true %}{% endif %}{% endfor %}
+{% for k in checks.MODIFIERS %}{% if values.get(k) %}{% set ns.mods = true %}{% endif %}{% endfor %}
+
+<div class="sc-steps" role="img" aria-label="{{ t.sc_step }}">
+    <div class="bar"><i class="on"></i><i></i></div>
+    <small>{{ t.sc_step }}</small>
+</div>
+<div class="sc-banner"><strong>{{ t.sc_banner_b }}</strong><br>{{ t.sc_banner_t }}</div>
+
 <form action="/screening" method="POST" id="screening-form" novalidate>
     <input type="hidden" name="lang" value="{{ lang }}">
     <input type="hidden" name="patient_id" value="{{ patient_id }}">
 
-    <h2>{{ t.sc_h_cvd }}</h2>
-    <p class="hint">{{ t.sc_h_cvd_hint }}</p>
-    {% for key in checks.CVD_CLINICAL + checks.CVD_IMAGING %}
-    <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['c_' ~ key] }}</label>
-    {% endfor %}
+    <details class="sc-sec" open>
+        <summary><span class="ttl">{{ t.sc_h_cvd }}</span><span class="tag">{{ t.sc_opt }}</span><span class="cnt" hidden></span></summary>
+        <div class="sc-body">
+            <p class="hint">{{ t.sc_h_cvd_hint }}</p>
+            {% for key in checks.CVD_CLINICAL + checks.CVD_IMAGING %}{{ cb(key, t['c_' ~ key]) }}{% endfor %}
+        </div>
+    </details>
 
-    <h2>{{ t.sc_h_diabetes }}</h2>
-    <div class="field">
-        <label for="diabetes">{{ t.sc_diabetes }}</label>
-        <select id="diabetes" name="diabetes" {% if errors.get('diabetes') %}class="invalid"{% endif %}>
-            <option value="" disabled {% if not values.get('diabetes') %}selected{% endif %}>{{ t.choose }}</option>
-            <option value="no" {% if values.get('diabetes') == 'no' %}selected{% endif %}>{{ t.sc_no }}</option>
-            <option value="yes" {% if values.get('diabetes') == 'yes' %}selected{% endif %}>{{ t.sc_yes }}</option>
-        </select>
-        <div class="error" role="alert">{{ errors.get('diabetes', '') }}</div>
-    </div>
-    <div id="diabetes-details">
-        {% for key in checks.DIABETES_DETAILS %}
-        <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['c_' ~ key] }}</label>
-        {% endfor %}
-    </div>
+    <details class="sc-sec req" id="sec-diabetes" open>
+        <summary><span class="ttl">{{ t.sc_h_diabetes }}</span><span class="tag req">{{ t.sc_req }}</span>
+            <span class="state{% if values.get('diabetes') %} done{% endif %}" id="diabetes-state">{{ t.sc_done if values.get('diabetes') else t.sc_todo }}</span></summary>
+        <div class="sc-body">
+            <fieldset class="sc-yn">
+                <legend>{{ t.sc_diabetes }}</legend>
+                <div class="seg">
+                    <label><input type="radio" name="diabetes" id="diabetes-yes" value="yes" {% if values.get('diabetes') == 'yes' %}checked{% endif %}> {{ t.sc_yes }}</label>
+                    <label><input type="radio" name="diabetes" id="diabetes-no" value="no" {% if values.get('diabetes') == 'no' %}checked{% endif %}> {{ t.sc_no }}</label>
+                </div>
+                <div class="err" id="diabetes-error" role="alert">{{ errors.get('diabetes', '') }}</div>
+            </fieldset>
+            <div id="diabetes-details" class="sc-body" style="padding:0">
+                {% for key in checks.DIABETES_DETAILS %}{{ cb(key, t['c_' ~ key]) }}{% endfor %}
+            </div>
+        </div>
+    </details>
 
-    <h2>{{ t.sc_h_kidney }}</h2>
-    <p class="hint">{{ t.sc_kidney_hint }}</p>
-    <div class="field">
-        <label for="sex">{{ t.sex }}</label>
-        <select id="sex" name="sex" {% if errors.get('sex') %}class="invalid"{% endif %}>
-            <option value="" {% if not values.get('sex') %}selected{% endif %}>–</option>
-            <option value="m" {% if values.get('sex') == 'm' %}selected{% endif %}>{{ t.male }}</option>
-            <option value="f" {% if values.get('sex') == 'f' %}selected{% endif %}>{{ t.female }}</option>
-        </select>
-        <div class="error" role="alert">{{ errors.get('sex', '') }}</div>
-    </div>
-    {% set low, high = checks.AGE_RANGE_SCREENING %}
-    <div class="field">
-        <label for="age">{{ t.age }}</label>
-        <input type="number" id="age" name="age" min="{{ low }}" max="{{ high }}" step="1" inputmode="numeric" value="{{ values.get('age', '') }}" {% if errors.get('age') %}class="invalid"{% endif %}>
-        <div class="error" role="alert">{{ errors.get('age', '') }}</div>
-    </div>
-    {% for field, label_key in [('creatinine', 'sc_creatinine'), ('egfr', 'sc_egfr')] %}
-    {% set limits = checks.NUMBER_FIELDS[field] %}
-    {% set grouped = units.has_units(field) %}
-    <div class="field">
-        <label for="{{ field }}">{{ t[label_key] }}{% if not grouped %} ({{ limits[2] }}){% endif %}</label>
-        {% if grouped %}<div class="inline-unit">{% endif %}
-        <input type="number" id="{{ field }}" name="{{ field }}" min="{{ limits[0] }}" max="{{ limits[1] }}" step="any" inputmode="decimal" value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
-        {% if grouped %}{{ unit_select(field, values, t, units) }}</div>{% endif %}
-        {{ range_hint(field, values, t, units, limits[0], limits[1], limits[2]) }}
-        <div class="error" role="alert">{{ errors.get(field, '') }}</div>
-    </div>
-    {% endfor %}
+    <details class="sc-sec" {% if ns.kidney %}open{% endif %}>
+        <summary><span class="ttl">{{ t.sc_h_kidney }}</span><span class="tag">{{ t.sc_opt }}</span></summary>
+        <div class="sc-body">
+            <p class="hint">{{ t.sc_kidney_hint }}</p>
+            <div class="field">
+                <label for="sex">{{ t.sex }}</label>
+                <select id="sex" name="sex" {% if errors.get('sex') %}class="invalid"{% endif %}>
+                    <option value="" {% if not values.get('sex') %}selected{% endif %}>–</option>
+                    <option value="m" {% if values.get('sex') == 'm' %}selected{% endif %}>{{ t.male }}</option>
+                    <option value="f" {% if values.get('sex') == 'f' %}selected{% endif %}>{{ t.female }}</option>
+                </select>
+                <div class="error" role="alert">{{ errors.get('sex', '') }}</div>
+            </div>
+            {% set low, high = checks.AGE_RANGE_SCREENING %}
+            <div class="field">
+                <label for="age">{{ t.age }}</label>
+                <input type="number" id="age" name="age" min="{{ low }}" max="{{ high }}" step="1" inputmode="numeric" value="{{ values.get('age', '') }}" {% if errors.get('age') %}class="invalid"{% endif %}>
+                <div class="error" role="alert">{{ errors.get('age', '') }}</div>
+            </div>
+            {{ number_field('creatinine', 'sc_creatinine') }}
+            {{ number_field('egfr', 'sc_egfr') }}
+        </div>
+    </details>
 
-    <h2>{{ t.sc_h_severe }}</h2>
-    {% for field, label_key in [('total_chol', 'sc_total_chol'), ('ldl', 'sc_ldl'), ('sbp', 'sc_sbp'), ('dbp', 'sc_dbp')] %}
-    {% set limits = checks.NUMBER_FIELDS[field] %}
-    {% set grouped = units.has_units(field) %}
-    <div class="field">
-        <label for="{{ field }}">{{ t[label_key] }}{% if not grouped %} ({{ limits[2] }}){% endif %}</label>
-        {% if grouped %}<div class="inline-unit">{% endif %}
-        <input type="number" id="{{ field }}" name="{{ field }}" min="{{ limits[0] }}" max="{{ limits[1] }}" step="any" inputmode="decimal" value="{{ values.get(field, '') }}" {% if errors.get(field) %}class="invalid"{% endif %}>
-        {% if grouped %}{{ unit_select(field, values, t, units) }}</div>{% endif %}
-        {{ range_hint(field, values, t, units, limits[0], limits[1], limits[2]) }}
-        <div class="error" role="alert">{{ errors.get(field, '') }}</div>
+    <details class="sc-sec" {% if ns.severe %}open{% endif %}>
+        <summary><span class="ttl">{{ t.sc_h_severe }}</span><span class="tag">{{ t.sc_opt }}</span></summary>
+        <div class="sc-body">
+            {{ number_field('total_chol', 'sc_total_chol') }}
+            {{ number_field('ldl', 'sc_ldl') }}
+            {{ number_field('sbp', 'sc_sbp') }}
+            {{ number_field('dbp', 'sc_dbp') }}
+        </div>
+    </details>
+
+    <details class="sc-sec" {% if ns.htn %}open{% endif %}>
+        <summary><span class="ttl">{{ t.sc_h_htn }}</span><span class="tag">{{ t.sc_opt }}</span><span class="cnt" hidden></span></summary>
+        <div class="sc-body">
+            {% for key in checks.HTN_ORGAN_DAMAGE %}{{ cb(key, t['c_' ~ key]) }}{% endfor %}
+        </div>
+    </details>
+
+    <details class="sc-sec" {% if ns.mods %}open{% endif %}>
+        <summary><span class="ttl">{{ t.sc_h_modifiers }}</span><span class="tag">{{ t.sc_opt }}</span><span class="cnt" hidden></span></summary>
+        <div class="sc-body">
+            {% for key in checks.MODIFIERS %}{{ cb(key, t['m_' ~ key]) }}{% endfor %}
+        </div>
+    </details>
+
+    <div class="sc-bar">
+        <span class="msg" id="sc-msg" aria-live="polite"{% if values.get('diabetes') %} hidden{% endif %}><strong>{{ t.sc_missing }}</strong> {{ t.sc_h_diabetes }}</span>
+        <button type="submit" id="sc-submit"{% if not values.get('diabetes') %} aria-disabled="true"{% endif %}>{{ t.sc_submit }}</button>
     </div>
-    {% endfor %}
-
-    <h2>{{ t.sc_h_htn }}</h2>
-    {% for key in checks.HTN_ORGAN_DAMAGE %}
-    <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['c_' ~ key] }}</label>
-    {% endfor %}
-
-    <h2>{{ t.sc_h_modifiers }}</h2>
-    {% for key in checks.MODIFIERS %}
-    <label class="check"><input type="checkbox" name="{{ key }}" {% if values.get(key) %}checked{% endif %}> {{ t['m_' ~ key] }}</label>
-    {% endfor %}
-
-    <br>
-    <button type="submit">{{ t.sc_submit }}</button>
 </form>
 <p class="hint">{{ t.sc_source }}</p>
 <p class="hint">{{ t.risk_hint }}</p>
@@ -127,9 +193,33 @@
     unitForm.querySelectorAll('select.unit').forEach(function (sel) { sel.addEventListener('change', function () { MediUnits.updateHints(unitForm); }); });
     MediUnits.updateHints(unitForm);
     MediUnits.watch(unitForm, { fit: {{ t.unit_fit|tojson }}, amb: {{ t.unit_amb|tojson }}, auto: {{ t.unit_auto|tojson }} });
-    var select = document.getElementById('diabetes'), box = document.getElementById('diabetes-details');
-    function toggle() { box.style.display = select.value === 'yes' ? '' : 'none'; }
-    select.addEventListener('change', toggle); toggle();
+    var box = document.getElementById('diabetes-details');
+    var radios = unitForm.querySelectorAll('input[name="diabetes"]');
+    var state = document.getElementById('diabetes-state'), errBox = document.getElementById('diabetes-error');
+    var msg = document.getElementById('sc-msg'), submitBtn = document.getElementById('sc-submit');
+    var LBL = { todo: {{ t.sc_todo|tojson }}, done: {{ t.sc_done|tojson }}, need: {{ t.sc_need_diabetes|tojson }}, count: {{ t.sc_count|tojson }} };
+    function answered() { return unitForm.querySelector('input[name="diabetes"]:checked'); }
+    function sync() {
+        var a = answered();
+        box.style.display = (a && a.value === 'yes') ? '' : 'none';
+        state.textContent = a ? LBL.done : LBL.todo; state.classList.toggle('done', !!a);
+        msg.hidden = !!a; submitBtn.setAttribute('aria-disabled', a ? 'false' : 'true');
+        if (a) { errBox.textContent = ''; }
+        unitForm.querySelectorAll('details.sc-sec').forEach(function (d) {
+            var cnt = d.querySelector('.cnt'); if (!cnt) { return; }
+            var n = d.querySelectorAll('input[type="checkbox"]:checked').length;
+            cnt.hidden = n === 0; cnt.textContent = LBL.count.replace('{n}', n);
+        });
+    }
+    unitForm.addEventListener('change', sync); sync();
+    unitForm.addEventListener('submit', function (e) {
+        if (answered()) { return; }
+        e.preventDefault();
+        errBox.textContent = LBL.need;
+        var sec = document.getElementById('sec-diabetes'); sec.open = true;
+        sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        radios[0].focus();
+    });
 })();
 </script>
 
@@ -150,8 +240,9 @@
         if (!control) { return; }
         var label = control.type === 'checkbox' ? control.closest('label') : form.querySelector('label[for="' + control.id + '"]');
         if (!label) { return; }
-        var row = document.createElement('div'); row.className = control.type === 'checkbox' ? 'check-row' : 'term-row';
-        label.parentNode.insertBefore(row, label); row.appendChild(label);
+        var row;
+        if (control.type === 'checkbox' && label.parentNode.classList.contains('check-row')) { row = label.parentNode; }
+        else { row = document.createElement('div'); row.className = control.type === 'checkbox' ? 'check-row' : 'term-row'; label.parentNode.insertBefore(row, label); row.appendChild(label); }
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'term-btn'; btn.textContent = '?';
         btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'term-pop-' + name);
