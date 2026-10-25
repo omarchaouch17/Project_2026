@@ -1944,3 +1944,35 @@ def test_questionnaire_keeps_a_draft_only_in_the_browser_tab(client, lang):
     assert "sessionStorage.setItem(KEY" in html and "localStorage.setItem(KEY" not in html   # the theme setting uses localStorage, the draft must not
     assert "fahemni_screening_draft_" in html and 'id="sc-clear"' in html and 'id="sc-toast"' in html and 'id="sc-draft-note"' in html
     assert "clearDraft()" in html
+
+
+@pytest.mark.parametrize("lang", ["de", "en", "fr", "ar"])
+def test_cardiovascular_boxes_have_decorative_icons(client, lang):
+    html = client.get(f"/screening?patient=1&lang={lang}").get_data(as_text=True)
+    assert html.count('<span class="ico" aria-hidden="true">') == len(sc.CVD_CLINICAL) + len(sc.CVD_IMAGING) == 9
+    assert "<img" not in html.split("sc-sec")[1]            # drawn in SVG, no external picture
+
+
+# ---------------------------------------------------------------- small GSAP animations (self-hosted, optional)
+
+def test_motion_files_are_served_and_keep_their_rules(client):
+    gsap_js = client.get("/static/vendor/gsap/gsap.min.js")
+    assert gsap_js.status_code == 200 and b"GSAP 3." in gsap_js.data and b"gsap.com/standard-license" in gsap_js.data   # licence header kept
+    motion = client.get("/static/motion.js").get_data(as_text=True)
+    assert "prefers-reduced-motion" in motion
+    assert ".emergency" not in motion and ".site-notice" not in motion      # safety information is never selected for animation
+
+
+@pytest.mark.parametrize("path", ["/screening?patient=1", "/risk"])
+def test_pages_with_motion_load_it_from_our_own_server_only(client, path, monkeypatch):
+    html = client.get(path + ("&" if "?" in path else "?") + "lang=fr").get_data(as_text=True)
+    if path == "/screening?patient=1":
+        assert '/static/vendor/gsap/gsap.min.js' in html and '/static/motion.js' in html
+    for host in ("cdn.", "unpkg", "jsdelivr", "cdnjs", "googleapis"):
+        assert host not in html, host
+
+
+def test_result_pages_reveal_only_badge_and_tips_never_the_emergency_note(client, fake_screening):
+    html = post_screening(client, lang="fr", mi_acs="on").get_data(as_text=True)
+    assert "/static/motion.js" in html and "FahemniMotion.reveal(document.querySelectorAll('.badge, ul.tips > li'))" in html
+    assert "emergency" in html

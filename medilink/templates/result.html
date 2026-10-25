@@ -86,4 +86,7 @@
 
 <br>
 <a href="/?lang={{ lang }}">{{ t.back }}</a>
+<script src="/static/vendor/gsap/gsap.min.js"></script>
+<script src="/static/motion.js"></script>
+<script>if (window.FahemniMotion) { FahemniMotion.reveal(document.querySelectorAll('.badge, ul.tips > li')); }</script>
 {% endblock %}
