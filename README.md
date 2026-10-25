@@ -67,4 +67,4 @@ python -m pytest -q    # tests
 
 ## Contact
 
-Omar Chaouch · amrouchchaouch@gmail.com · LinkedIn: https://www.linkedin.com/in/chaouch-omar-5200ba18a
+Omar Chaouch · amrouchchaouch@gmail.com · LinkedIn: https://www.linkedin.com/in/omar-chaouch-5200ba18a
